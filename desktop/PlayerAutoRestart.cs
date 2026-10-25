@@ -23,6 +23,10 @@ internal sealed partial class PlayerForm
 
     private void UpdateAutoRestart()
     {
+        RefreshAutoRestart(true);
+    }
+    private void RefreshAutoRestart(bool waitForAudio)
+    {
         PreparedAutoTransition plan = autoTransition;
         if (playback == null || plan == null) return;
         int index = songQueue.Items.FindIndex(entry => entry.Id == plan.QueueEntryId);
@@ -49,6 +53,7 @@ internal sealed partial class PlayerForm
         var loop = AutoReplayAnalysis.Fallback(plan.Traits.Bpm, plan.Traits.BeatOffset, plan.Timing.Rate, loopTiming.SourceEndFrame(plan.Next.TotalFrames), plan.Next.PositionFrames, latestStart);
         if (guard && plan.Next.ReplayAnalysis != null)
             loop = plan.Next.ReplayAnalysis.Plan(plan.Traits.Bpm, plan.Traits.BeatOffset, plan.Timing.Rate, loopTiming.SourceEndFrame(plan.Next.TotalFrames), plan.Next.PositionFrames, latestStart, restart);
-        playback.ProtectIncoming(plan.Next, restart, guard, loop);
+        if (waitForAudio) playback.ProtectIncoming(plan.Next, restart, guard, loop);
+        else playback.TryProtectIncoming(plan.Next, restart, guard, loop);
     }
 }

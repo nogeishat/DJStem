@@ -58,6 +58,7 @@ internal sealed partial class PlayerForm
         if (visible) { browser.BringToFront(); LayoutBrowser(); RenderBrowser(false); browserPlayerTab.Focus(); }
         else { main.BringToFront(); LayoutContent(); libraryTab.Focus(); }
         ResumeLayout(true); libraryGrid.PerformLayout();
+        UpdateTransport();
     }
 
     private void LayoutBrowser()

@@ -478,15 +478,22 @@ internal sealed partial class PlayerForm : Form
     private static string Clock(double seconds) { int total = Math.Max(0, (int)seconds); return (total / 60) + ":" + (total % 60).ToString("00"); }
     private void UpdateTransport()
     {
-        if (playback != null) playback.ReleaseRetired();
+        if (playback != null) playback.ReleaseRetiredInBackground();
+        StemMixer.DisplayState display = null;
+        if (mixer != null && !mixer.TryGetDisplayState(out display)) return;
         bool playing = output != null && output.PlaybackState == PlaybackState.Playing;
-        double position = mixer == null ? 0 : Math.Max(0, mixer.Seconds - (playing ? 0.1 : 0)); double length = mixer == null ? 0 : mixer.Duration;
+        double position = display == null ? 0 : Math.Max(0, display.Seconds - (playing ? 0.1 : 0)); double length = display == null ? 0 : display.Duration;
         if (!seek.Dragging) seek.Value = length <= 0 ? 0 : (int)(position / length * 10000);
-        elapsed.Text = Clock(position); duration.Text = Clock(length); play.Glyph = playing ? "pause" : "play"; play.AccessibleName = playing ? "Pause" : "Play"; play.Invalidate();
-        for (int i = 0; i < 4; i++) UpdateStemWaveform(i, position, length);
-        UpdateAutoMarkers();
+        elapsed.Text = Clock(position); duration.Text = Clock(length);
+        string glyph = playing ? "pause" : "play";
+        if (play.Glyph != glyph) { play.Glyph = glyph; play.AccessibleName = playing ? "Pause" : "Play"; play.Invalidate(); }
+        if (!browser.Visible && !queueVisible)
+        {
+            for (int i = 0; i < 4; i++) UpdateStemWaveform(i, position, length, display);
+            UpdateAutoMarkers();
+        }
         UpdateStemLoadingButtons();
-        UpdateResetStemsButton();
+        UpdateResetStemsButton(display);
         UpdateSaveMixButton();
         UpdateBrowserTransport(playing, position, length);
     }

@@ -1,7 +1,7 @@
-DJStem 1.0.2 — Windows 10/11, 64-bit
+DJStem 1.0.3 — Windows 10/11, 64-bit
 
 Windows trust notice: this release is unsigned. Smart App Control has blocked
-setup and app executables on the test PC. The 1.0.2 log fix does not resolve that
+setup and app executables on the test PC. The 1.0.3 playback and queue fixes do not resolve that
 trust decision. Check the current release status before downloading:
 https://github.com/nogeishat/DJStem/blob/main/docs/CODE-SIGNING.md
 
@@ -41,7 +41,10 @@ New libraries start with the release's default preferences. Existing preferences
 playlists and mixes are retained. No personal songs, playlists, mixes or download
 history are included in this release.
 
-Version 1.0.2 fixes launcher log-file conflicts. Per-launch diagnostics are saved
+Version 1.0.3 improves scrolling during playback, Auto play and Next transitions.
+New completed downloads go after manual queue choices and before Auto play
+suggestions. The Auto play button is white when enabled in both views.
+The launcher fixes from 1.0.2 are included. Per-launch diagnostics are saved
 inside your library under data/logs/. Failed window launches stop their background
 service instead of leaving it running. Repeated launches focus the existing window.
 

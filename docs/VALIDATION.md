@@ -1,5 +1,29 @@
 # DJStem validation
 
+## 1.0.3 playback, transition scrolling and queue priority
+
+Validated on 25 October 2026. The final source passed all 77 JavaScript tests,
+222 native queue checks, 153 library/browser checks, 154 native player checks,
+133 scrolling checks and 24 transition-scrolling checks. Both scrolling suites
+completed their 60-second runs, including the active transition-start branch
+with incoming replay analysis populated for automatic and Next-triggered handoffs.
+The full autoplay test binary passed 15,927 checks on a direct retry, followed
+by 30 seek checks. The initial test launch was blocked by Windows Application
+Control; no security settings were changed. Launcher regressions also passed.
+
+CPU and NVIDIA releases passed the bundled-runtime checks, model checksums,
+selected-library service test, native player construction and live audio DLL
+checks. CPU runtime isolation and the absence of GPU providers were verified;
+the NVIDIA build exposed CUDA and detected the test GPU. Both full installer
+archives passed integrity checks. Version metadata is 1.0.3 throughout the
+application, launcher, installer, dependency manifests and release README.
+
+The first-party binaries and installers remain unsigned. Signature/hash audits
+record Smart App Control compatibility as unverified. Previous local playback
+checks exercised the same fixes through a real Next handoff with isolated test
+preferences; neither those checks nor these release checks establish acceptance
+of downloaded installers under enforcement.
+
 ## 1.0.2 launcher and shutdown patch
 
 Validated on 25 October 2026. All 77 Node.js tests pass. Added real missing-child

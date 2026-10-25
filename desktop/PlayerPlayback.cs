@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using NAudio.Wave;
 
 // Switch whole timelines inside one audio callback, filling the same output
@@ -55,7 +57,7 @@ internal sealed class PlayerPlayback : ISampleProvider, IDisposable
     }
     internal PlayerPlayback(StemMixer mixer) { current = mixer; WaveFormat = mixer.WaveFormat; restartTail = new float[Math.Max(1, WaveFormat.SampleRate / 100) * 2]; }
     public WaveFormat WaveFormat { get; private set; }
-    internal StemMixer Current { get { lock (gate) return current; } }
+    internal StemMixer Current { get { return Volatile.Read(ref current); } }
     internal bool ReplaceCurrent(StemMixer expected, StemMixer replacement, double? positionScale = null)
     {
         lock (gate)
@@ -78,6 +80,12 @@ internal sealed class PlayerPlayback : ISampleProvider, IDisposable
             guardIncoming = guard ? next : null; incomingLoop = guard ? loop : null;
             incomingFirstEnd = restart ? loop.NextEndFrame(next.PositionFrames) : loop.EndFrame;
         }
+    }
+    internal void TryProtectIncoming(StemMixer next, bool restart, bool guard, AutoLoopTiming loop)
+    {
+        if (!Monitor.TryEnter(gate)) return;
+        try { ProtectIncoming(next, restart, guard, loop); }
+        finally { Monitor.Exit(gate); }
     }
     internal void ClearRestartProtection()
     {
@@ -202,6 +210,21 @@ internal sealed class PlayerPlayback : ISampleProvider, IDisposable
             retired.RemoveAll(mixer => mixer != fadeFrom);
         }
         foreach (StemMixer mixer in finished) mixer.Dispose();
+    }
+    internal void ReleaseRetiredInBackground()
+    {
+        if (!Monitor.TryEnter(gate)) return;
+        StemMixer[] finished;
+        try
+        {
+            if (retired.Count == 0) return;
+            finished = retired.Where(mixer => mixer != fadeFrom).ToArray();
+            retired.RemoveAll(mixer => mixer != fadeFrom);
+        }
+        finally { Monitor.Exit(gate); }
+        // Ownership has left the timeline. Decoder shutdown may wait for native
+        // workers; it must not run on the scrolling/painting thread either.
+        if (finished.Length != 0) Task.Run(() => { foreach (StemMixer mixer in finished) mixer.Dispose(); });
     }
     public int Read(float[] buffer, int offset, int count)
     {

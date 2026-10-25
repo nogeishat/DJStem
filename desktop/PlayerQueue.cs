@@ -118,9 +118,10 @@ internal sealed partial class PlayerForm
         {
             if (!completedDownloadsSeen.Add(download.Id) || !playing) continue;
             if (autoPlaylistId != null && !AutoPlaybackSongs().Any(song => song.PlaybackKey == download.Song.PlaybackKey)) continue;
-            if (songQueue.Items.Any(entry => String.Equals(entry.Audio, download.Song.Audio, StringComparison.OrdinalIgnoreCase)) || String.Equals(current.Audio, download.Song.Audio, StringComparison.OrdinalIgnoreCase)) continue;
-            // Completed downloads are automatic additions, below manual choices.
-            AddQueuedSong(download.Song, songQueue.Items.Count, true);
+            if (!CanManuallyQueueSong(download.Song)) continue;
+            // Downloads are user choices: append to the manual-priority group,
+            // ahead of shuffle suggestions and behind any active handoff.
+            AddQueuedSong(download.Song, ManualQueueEnd, false);
         }
         completedDownloadBaseline = true;
     }
@@ -147,6 +148,7 @@ internal sealed partial class PlayerForm
         queuePanel.Visible = show;
         LayoutContent();
         if (show) { FollowSessionSong(current); RenderPlaybackQueue(); queuePanel.BringToFront(); queueList.Focus(); ScrollQueueToCurrent(); }
+        else UpdateTransport();
     }
     private void LayoutPlaybackQueue(int width)
     {

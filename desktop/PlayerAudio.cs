@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -257,7 +258,9 @@ internal sealed partial class StemMixer : ISampleProvider, IDisposable
         return !originalMode && enabled[i - 1] && (!anySolo || solo[i - 1]) ? levels[i - 1] : 0;
     }
     private void SetInitialGains() { for (int i = 0; i < gains.Length; i++) gains[i] = Target(i); }
-    internal long PositionFrames { get { lock (gate) return position; } }
+    // Observers must not wait behind decoding/DSP on the audio thread. Writers
+    // still use gate; playback/scheduling decisions validate under that lock.
+    internal long PositionFrames { get { return Interlocked.Read(ref position); } }
     internal double Seconds { get { return (double)PositionFrames / WaveFormat.SampleRate; } }
     internal double Duration { get { return (double)TotalFrames / WaveFormat.SampleRate; } }
     internal bool OriginalMode { get { lock (gate) return originalMode; } set { lock (gate) originalMode = value || !HasStems; } }

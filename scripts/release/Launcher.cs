@@ -12,8 +12,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("DJStem")]
 [assembly: AssemblyProduct("DJStem")]
-[assembly: AssemblyVersion("1.0.2.0")]
-[assembly: AssemblyFileVersion("1.0.2.0")]
+[assembly: AssemblyVersion("1.0.3.0")]
+[assembly: AssemblyFileVersion("1.0.3.0")]
 internal static class ReleaseLauncher
 {
     private static readonly object LogLock = new object();
@@ -67,7 +67,7 @@ internal static class ReleaseLauncher
             using (StreamWriter writer = OpenLog(library, mode, out log))
             using (Process process = new Process())
             {
-                writer.WriteLine("DJStem 1.0.2: " + mode);
+                writer.WriteLine("DJStem 1.0.3: " + mode);
                 process.StartInfo = new ProcessStartInfo(Path.Combine(root, "tools", "node.exe"), "\"" + Path.Combine(root, "scripts", "release", "boot.mjs") + "\" " + mode) { WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
                 process.StartInfo.EnvironmentVariables["STEMKIT_USER_DATA"] = library;
                 process.StartInfo.EnvironmentVariables["STEMKIT_RELEASE_ROOT"] = root;

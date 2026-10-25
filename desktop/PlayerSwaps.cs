@@ -85,11 +85,11 @@ internal sealed partial class PlayerForm
         UpdateTuningHeader();
         UpdateSaveMixButton();
     }
-    private void UpdateResetStemsButton()
+    private void UpdateResetStemsButton(StemMixer.DisplayState display = null)
     {
         bool ready = !loading && !editingTuning && !editingArtists && !AutoTransitionActive && mixer != null && mixer.HasStems && stemSources != null;
         bool timingChanged = false;
-        if (ready) for (int lane = 0; lane < 4; lane++) timingChanged |= mixer.StemState(lane).Changed;
+        if (ready) for (int lane = 0; lane < 4; lane++) timingChanged |= (display == null ? mixer.StemState(lane) : display.Timing[lane]).Changed;
         resetStems.Enabled = ready && (preparingReplacement || stemSources.Available != null || timingChanged);
     }
     private async Task ReplaceFromDrop(SongInfo donor, int index)

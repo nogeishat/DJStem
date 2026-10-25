@@ -95,14 +95,15 @@ internal sealed partial class PlayerForm
     private void UpdateAutoMarkers()
     {
         if (autoTransition == null) { zoomedAutoPlan = null; autoViewStart = autoViewSeconds = 0; }
-        transitionEditorButton.Visible = autoPlayEnabled; transitionEditorButton.Selected = AutoEditorEnabled; transitionEditorButton.Invalidate();
+        transitionEditorButton.Visible = autoPlayEnabled;
+        if (transitionEditorButton.Selected != AutoEditorEnabled) { transitionEditorButton.Selected = AutoEditorEnabled; transitionEditorButton.Invalidate(); }
         PreparedAutoTransition plan = AutoEditorEnabled && AutoMarkersReady ? autoTransition : null;
         if (plan != null) EnsureAutoViewport(plan);
         bool bridge = plan != null && playback != null && playback.Current == plan.Bridge;
         for (int lane = 0; lane < 4; lane++)
         {
             WaveformView view = waveforms[lane];
-            if (plan == null) { view.AutoMarkers = null; view.Invalidate(); continue; }
+            if (plan == null) { if (view.AutoMarkers != null) { view.AutoMarkers = null; view.Invalidate(); } continue; }
             long cut = plan.CutFrames == null ? plan.SwapFrames[lane] : plan.CutFrames[lane], arrival = plan.SwapFrames[lane];
             double elapsed = bridge ? Math.Max(0, plan.Bridge.Seconds - .1) : 0;
             view.AutoMarkers = new AutoWaveformMarkers

@@ -1,6 +1,6 @@
 {
   "name": "djstem",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "test:loudness": "node scripts/check-loudness.mjs",
     "test:browser": "node scripts/check-browser.mjs",
     "test:scrolling": "node scripts/check-scrolling.mjs",
+    "test:transition-scrolling": "node scripts/check-transition-scrolling.mjs",
     "test:auto-play": "node scripts/check-auto-play.mjs",
     "test:queue": "node scripts/check-queue.mjs",
     "test:gestures": "node scripts/check-gestures.mjs",

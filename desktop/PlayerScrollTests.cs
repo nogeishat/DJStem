@@ -1,14 +1,18 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using NAudio.Wave;
 
 internal static class PlayerScrollTests
 {
     private static int checks;
+    private static int playbackScrollMilliseconds = 2000;
     private static void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; }
     private static void Invoke(object control, string method, params object[] arguments) { control.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(control, arguments); }
     private static SmoothScroll Motion(SmoothList list) { return (SmoothScroll)typeof(SmoothList).GetField("scroll", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(list); }
@@ -169,10 +173,166 @@ internal static class PlayerScrollTests
             }
         }
     }
-    [STAThread]
-    private static int Main()
+    private static object Field(object source, string name) { return source.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(source); }
+    private static void SetField(object source, string name, object value) { source.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(source, value); }
+    private static void DuringAudioWork(object gate, Action update, string message)
     {
-        try { Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false); Model(); Lists(); Grids(); CachedRendering(); Console.WriteLine("Smooth scrolling: " + checks + " checks passed."); return 0; }
+        using (var entered = new ManualResetEventSlim())
+        {
+            var audio = new Thread(() => { lock (gate) { entered.Set(); Thread.Sleep(300); } });
+            audio.Start(); entered.Wait();
+            var clock = Stopwatch.StartNew(); update(); clock.Stop(); audio.Join();
+            Console.WriteLine(message + ": " + clock.ElapsedMilliseconds + " ms");
+            Check(clock.ElapsedMilliseconds < 100, message + " must not wait for an audio callback or decoder");
+        }
+    }
+    private sealed class SlowClosingReader : WaveStream
+    {
+        private readonly WaveStream source;
+        internal readonly ManualResetEventSlim Entered = new ManualResetEventSlim(), Release = new ManualResetEventSlim();
+        internal SlowClosingReader(WaveStream reader) { source = reader; }
+        public override WaveFormat WaveFormat { get { return source.WaveFormat; } }
+        public override long Length { get { return source.Length; } }
+        public override long Position { get { return source.Position; } set { source.Position = value; } }
+        public override int Read(byte[] buffer, int offset, int count) { return source.Read(buffer, offset, count); }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) { Entered.Set(); Release.Wait(5000); source.Dispose(); }
+            base.Dispose(disposing);
+        }
+    }
+    private static void SteadyDisplay(PlayerForm form, StemMixer mixer)
+    {
+        var views = (WaveformView[])Field(form, "waveforms");
+        int invalidations = 0;
+        foreach (var view in views) { IntPtr handle = view.Handle; view.Invalidated += delegate { invalidations++; }; }
+        Invoke(form, "UpdateTransport"); invalidations = 0;
+        for (int tick = 0; tick < 600; tick++) Invoke(form, "UpdateTransport");
+        Check(invalidations == 0, "An unchanged paused display must not redraw the four waveforms on every transport tick");
+        mixer.Seek(.5); Invoke(form, "UpdateTransport");
+        Check(views.All(view => Math.Abs(view.Progress - .5) < .001), "A snapshot must still update every lane after a seek");
+        var browser = (Control)Field(form, "browser"); browser.Visible = true;
+        // Visible is inherited from the parent; show the form transparently so
+        // this exercises the actual library visibility branch without playing sound.
+        form.ShowInTaskbar = false; form.Opacity = 0; form.Show();
+        ((System.Windows.Forms.Timer)Field(form, "timer")).Stop();
+        invalidations = 0; mixer.Seek(.75); Invoke(form, "UpdateTransport");
+        Check(invalidations == 0, "Browsing the library must not repaint the hidden stem waveforms");
+        Invoke(form, "ShowLibrary", false);
+        Check(views.All(view => Math.Abs(view.Progress - .75) < .001), "Returning to Now playing must immediately catch up the waveforms");
+        Invoke(form, "ShowPlaybackQueue", true); invalidations = 0;
+        mixer.Seek(.9); Invoke(form, "UpdateTransport");
+        Check(invalidations == 0, "Viewing the queue must not repaint hidden stem waveforms");
+        Invoke(form, "ShowPlaybackQueue", false);
+        Check(views.All(view => Math.Abs(view.Progress - .9) < .001), "Closing the queue must immediately catch up the waveforms");
+        form.Hide();
+    }
+    private static void ScrollingDuringPlayback(PlayerForm form, StemMixer mixer, PlayerPlayback playback)
+    {
+        using (var host = new Form { ShowInTaskbar = false, Opacity = 0, ClientSize = new Size(900, 600) })
+        using (var queue = new QueueList { Bounds = new Rectangle(250, 310, 650, 290) })
+        using (var sidebar = new SongList { Bounds = new Rectangle(0, 0, 240, 600), ItemHeight = 66 })
+        using (var grid = new LibraryGridPanel { Bounds = new Rectangle(250, 0, 650, 300), AutoScroll = true })
+        using (var refresh = new System.Windows.Forms.Timer { Interval = 25 })
+        using (var stop = new ManualResetEventSlim())
+        {
+            for (int i = 0; i < 80; i++)
+            {
+                var song = new SongInfo { Title = "Playback " + i, Artist = "Artist" };
+                queue.Items.Add(new QueueRow { Entry = new PlaybackQueueEntry { Audio = "playback-" + i }, Song = song }); sidebar.Items.Add(song);
+                grid.Controls.Add(new LibraryCard { Title = song.Title, Subtitle = song.Artist, Size = new Size(200, 258) });
+            }
+            host.Controls.Add(queue); host.Controls.Add(sidebar); host.Controls.Add(grid); host.Show();
+            queue.ScrollBy(2000); sidebar.ScrollBy(2000);
+            Invoke(grid, "OnMouseWheel", new MouseEventArgs(MouseButtons.None, 0, 40, 40, -1200));
+            int frames = 0, sidebarFrames = 0, gridFrames = 0, updates = 0; long maximumGap = 0;
+            var clock = Stopwatch.StartNew(); long lastFrame = 0;
+            queue.Invalidated += delegate { if (queue.ScrollOffset == 0) return; long now = clock.ElapsedMilliseconds; if (lastFrame != 0) maximumGap = Math.Max(maximumGap, now - lastFrame); lastFrame = now; frames++; };
+            sidebar.Invalidated += delegate { sidebarFrames++; };
+            grid.Controls[0].LocationChanged += delegate { gridFrames++; };
+            refresh.Tick += delegate { Invoke(form, "UpdateTransport"); updates++; };
+            // Real decoding and mixing run concurrently with UI timers. The
+            // repeated seeks simulate a long playback session in a short test.
+            Task audio = Task.Run(() =>
+            {
+                var samples = new float[320];
+                while (!stop.IsSet) { if (playback.Read(samples, 0, samples.Length) == 0) mixer.Seek(0); Thread.Sleep(1); }
+            });
+            refresh.Start();
+            try
+            {
+                while (clock.ElapsedMilliseconds < playbackScrollMilliseconds)
+                {
+                    if (Math.Abs(queue.ScrollTarget - queue.ScrollOffset) < 1) queue.ScrollBy(queue.ScrollOffset > 1000 ? -1800 : 1800);
+                    if (Math.Abs(sidebar.ScrollTarget - sidebar.ScrollOffset) < 1) sidebar.ScrollBy(sidebar.ScrollOffset > 1000 ? -1800 : 1800);
+                    if (Math.Abs(grid.ScrollTarget - grid.ScrollOffset) < 1) Invoke(grid, "OnMouseWheel", new MouseEventArgs(MouseButtons.None, 0, 40, 40, grid.ScrollOffset > 800 ? 1200 : -1200));
+                    Application.DoEvents(); Thread.Sleep(1);
+                }
+            }
+            finally { refresh.Stop(); stop.Set(); audio.GetAwaiter().GetResult(); }
+            Console.WriteLine("Concurrent playback scrolling (" + playbackScrollMilliseconds + " ms): " + frames + " queue frames, " + sidebarFrames + " sidebar frames, " + updates + " refreshes, largest queue frame gap " + maximumGap + " ms");
+            Check(frames >= 30 && updates >= 20 && maximumGap < 150, "Scrolling and transport timers must keep advancing during repeated decoding and seeks");
+            Check(sidebarFrames >= 30 && gridFrames >= 30, "Sidebar and library scrolling must also keep moving throughout playback");
+        }
+    }
+    private static void ReaderCleanup(PlayerForm form, string audio)
+    {
+        using (var old = new StemMixer(audio, ""))
+        using (var bridge = new StemMixer(audio, ""))
+        using (var next = new StemMixer(audio, ""))
+        using (var playback = new PlayerPlayback(old))
+        {
+            var readers = (WaveStream[])Field(old, "readers"); var reader = new SlowClosingReader(readers[0]); readers[0] = reader;
+            Check(playback.Schedule(old, old.TotalFrames, bridge, next), "Cleanup test must schedule a real song handoff");
+            var samples = new float[3200]; while (playback.Current != next) playback.Read(samples, 0, samples.Length);
+            SetField(form, "mixer", next); SetField(form, "playback", playback);
+            try
+            {
+                var clock = Stopwatch.StartNew(); Invoke(form, "UpdateTransport"); clock.Stop();
+                Check(clock.ElapsedMilliseconds < 100 && reader.Entered.Wait(2000), "Retired decoder shutdown must run off the UI thread after a song handoff");
+                Check(playback.Read(samples, 0, samples.Length) > 0, "Playback must continue while an old decoder is still closing");
+            }
+            finally { reader.Release.Set(); SetField(form, "mixer", null); SetField(form, "playback", null); }
+        }
+    }
+    private static void PlaybackResponsiveness()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "djstem-scroll-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            string audio = Path.Combine(root, "audio.wav");
+            using (var writer = new WaveFileWriter(audio, new WaveFormat(16000, 16, 2))) writer.Write(new byte[64000], 0, 64000);
+            using (var form = new PlayerForm(root, root))
+            using (var mixer = new StemMixer(audio, ""))
+            using (var playback = new PlayerPlayback(mixer))
+            {
+                SetField(form, "mixer", mixer); SetField(form, "playback", playback);
+                Invoke(form, "UpdateTransport");
+                DuringAudioWork(Field(mixer, "gate"), () => Invoke(form, "UpdateTransport"), "Transport refresh during decoding");
+                DuringAudioWork(Field(playback, "gate"), () => Invoke(form, "UpdateTransport"), "Transport refresh during timeline processing");
+                DuringAudioWork(Field(mixer, "gate"), () => { long position = mixer.PositionFrames; }, "Transport position observation");
+                DuringAudioWork(Field(playback, "gate"), () => { StemMixer current = playback.Current; }, "Timeline observation");
+                using (var bridge = new StemMixer(audio, ""))
+                using (var next = new StemMixer(audio, ""))
+                {
+                    SetField(form, "autoTransition", new PreparedAutoTransition { Reference = mixer, Bridge = bridge, Next = next, Timing = new AutoTransitionTiming(120, 120, 16000, new AutoPlaySettings()), Traits = new MusicTraits { Bpm = 120 } });
+                    DuringAudioWork(Field(playback, "gate"), () => ((Task)typeof(PlayerForm).GetMethod("TickAutoPlay", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(form, null)).GetAwaiter().GetResult(), "Autoplay polling during timeline processing");
+                    SetField(form, "autoTransition", null);
+                }
+                SteadyDisplay(form, mixer);
+                ScrollingDuringPlayback(form, mixer, playback);
+                SetField(form, "mixer", null); SetField(form, "playback", null);
+                ReaderCleanup(form, audio);
+            }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+    [STAThread]
+    private static int Main(string[] args)
+    {
+        if (args.Contains("--soak")) playbackScrollMilliseconds = 60000;
+        try { Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false); Model(); Lists(); Grids(); CachedRendering(); PlaybackResponsiveness(); Console.WriteLine("Smooth scrolling: " + checks + " checks passed."); return 0; }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
 }

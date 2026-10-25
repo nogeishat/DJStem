@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using NAudio.Wave;
 
 // Source time is independent of transport time. Loops never extend TotalFrames.
@@ -65,6 +66,27 @@ internal sealed class StemTiming
 
 internal sealed partial class StemMixer
 {
+    internal sealed class DisplayState
+    {
+        internal double Seconds, Duration;
+        internal readonly StemTiming[] Timing = new StemTiming[4];
+        internal readonly double[] SourceDurations = new double[4];
+    }
+    // A single consistent snapshot, acquired only when the audio callback is
+    // idle. A missed display frame is preferable to stalling every UI control.
+    internal bool TryGetDisplayState(out DisplayState state)
+    {
+        state = null;
+        if (!Monitor.TryEnter(gate)) return false;
+        try
+        {
+            if (disposed) return false;
+            state = new DisplayState { Seconds = position / (double)WaveFormat.SampleRate, Duration = Duration };
+            for (int lane = 0; lane < 4; lane++) { state.Timing[lane] = stemTiming[lane].Copy(); state.SourceDurations[lane] = StemFrames(lane) / (double)WaveFormat.SampleRate; }
+            return true;
+        }
+        finally { Monitor.Exit(gate); }
+    }
     private readonly StemTiming[] stemTiming = { new StemTiming(), new StemTiming(), new StemTiming(), new StemTiming() };
     private readonly int[] stemFadeFrames = new int[4];
     private readonly float[] stemLastLeft = new float[4], stemLastRight = new float[4], stemFadeLeft = new float[4], stemFadeRight = new float[4];

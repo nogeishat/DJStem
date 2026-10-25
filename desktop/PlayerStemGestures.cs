@@ -72,11 +72,11 @@ internal sealed partial class PlayerForm
         tip.SetToolTip(stemLoopLabels[lane], state.Looping ? "This stem repeats " + bars + (bars == 1 ? " bar. " : " bars. ") + "Drag the waveform's loop end to resize it." : "");
         tip.SetToolTip(stemOffsetLabels[lane], Math.Abs(beats) > .00001 ? Math.Abs(beats).ToString("0.#") + " beats " + (beats > 0 ? "later" : "earlier") + " than the other stems." : "");
     }
-    private void UpdateStemWaveform(int lane, double position, double length)
+    private void UpdateStemWaveform(int lane, double position, double length, StemMixer.DisplayState display)
     {
         WaveformView waveform = waveforms[lane]; waveform.Bpm = StemGestureBpm;
-        waveform.SourceDuration = mixer == null ? length : mixer.StemDuration(lane);
-        StemTiming state = mixer == null ? new StemTiming() : mixer.StemState(lane); waveform.ShowTiming(state);
+        waveform.SourceDuration = display == null ? length : display.SourceDurations[lane];
+        StemTiming state = display == null ? new StemTiming() : display.Timing[lane]; waveform.ShowTiming(state);
         if (autoTransition != null && playback != null && playback.Current == autoTransition.Bridge && autoTransition.OutgoingTiming != null && !autoTransition.Switched[lane] && !autoTransition.Silenced[lane]) UpdateStemTimingLabels(lane, autoTransition.OutgoingTiming[lane], autoTransition.Timing.FromBpm);
         else UpdateStemTimingLabels(lane, state, StemGestureBpm);
         waveform.Progress = length <= 0 ? 0 : position / length;

@@ -53,7 +53,7 @@ internal sealed partial class PlayerForm
         SetupButton(browserAutoPlayButton, "Auto play", browser, null); browserAutoPlayButton.Bounds = new Rectangle(150, 13, 94, 32);
         foreach (GlassButton button in new[] { autoPlayButton, browserAutoPlayButton })
         {
-            button.Toggle = true; button.SelectedFill = PlayerTheme.Purple; button.Font = new Font("Segoe UI", 8.5f);
+            button.Toggle = true; button.SelectedFill = Color.White; button.Font = new Font("Segoe UI", 8.5f);
             button.Click += delegate { SetAutoPlay(!autoPlayEnabled); };
             tip.SetToolTip(button, "Shuffle with a tempo ramp, then replace the next song's stems one at a time.");
         }
@@ -179,7 +179,7 @@ internal sealed partial class PlayerForm
         PollAutoTransition();
         FillAutoQueue();
         UpdateAutoPreload();
-        UpdateAutoRestart();
+        RefreshAutoRestart(false);
         // Preparation may finish after the outgoing device has reached its end.
         // Resume the scheduled handoff only after a natural finish, never a pause.
         if (queueAdvancePending && autoTransition != null && output != null && output.PlaybackState == PlaybackState.Stopped)
@@ -690,7 +690,7 @@ internal sealed partial class PlayerForm
             try { if (File.Exists(current.Cover)) using (Image source = Image.FromFile(current.Cover)) cover.Image = SquareCover(source, 512); } catch { }
             ShowAddedSong(null); UpdateBrowserSong(); RenderSongs(); StyleModes(); SetEnabled(true); SavePreferences();
             if (plan.PlaylistMix != null) { PromotePlaylistMix(plan); StyleModes(); UpdateBrowserSong(); UpdateTransport(); SavePreferences(); }
-            playback.ReleaseRetired(); message.Text = autoPlayEnabled ? restarted ? "Auto play · looped back within " + current.Title + " to leave time for the next song" : "Auto play · " + current.Title : "Auto play off.";
+            playback.ReleaseRetiredInBackground(); message.Text = autoPlayEnabled ? restarted ? "Auto play · looped back within " + current.Title + " to leave time for the next song" : "Auto play · " + current.Title : "Auto play off.";
         }
     }
 }

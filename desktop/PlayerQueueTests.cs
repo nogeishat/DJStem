@@ -448,11 +448,12 @@ internal static class PlayerQueueTests
             string metadataFile = Path.Combine(folder, "metadata.json"), metadata = File.ReadAllText(metadataFile); File.WriteAllText(metadataFile, "{}");
             Finish((Task)Invoke(form, "RefreshLibrary")); Check(queue.Items.Count == 2, "A song with missing processed metadata must not be queued");
             File.WriteAllText(metadataFile, metadata);
-            var transition = new PreparedAutoTransition { Bridge = mixer, Reference = mixer, QueueEntryId = existing.Id }; Set(form, "autoTransition", transition);
+            var transition = new PreparedAutoTransition { Bridge = mixer, Reference = mixer, Next = mixer, Song = manual, QueueEntryId = existing.Id,
+                Traits = new MusicTraits { Bpm = 120 }, Timing = new AutoTransitionTiming(120, 120, 16000, new AutoPlaySettings()) }; Set(form, "autoTransition", transition);
             Finish((Task)Invoke(form, "RefreshLibrary"));
             Check(queue.Items.Count == 3 && queue.Items.Take(2).Select(entry => entry.Id).SequenceEqual(before) && queue.Items.Last().Audio.EndsWith("New song.mp3"), "A fully processed new download must append behind the existing queue while music plays");
             Check(Get(form, "autoTransition") == transition && queue.Next == existing && Get(form, "current") == current && output.PlaybackState == PlaybackState.Playing, "Adding a download during an active transition must preserve the handoff, current audio, and next entry");
-            Check(queue.Items.Last().Automatic, "Completed downloads must remain automatic additions below manual choices, including songs with unknown BPM or key");
+            Check(!queue.Items.Last().Automatic, "Completed downloads must have manual priority, including songs with unknown BPM or key");
             Set(form, "autoTransition", null); Finish((Task)Invoke(form, "RefreshLibrary")); Check(queue.Items.Count == 3, "Repeated refreshes must not add the same download again");
             Invoke(form, "RemoveQueuedSong", queue.Items.Last().Id); Finish((Task)Invoke(form, "RefreshLibrary"));
             Check(queue.Items.Count == 2, "A removed completed download must stay removed on later refreshes");
@@ -465,7 +466,7 @@ internal static class PlayerQueueTests
             SongInfo queued = ((List<SongInfo>)Get(form, "songs")).First(song => song.Title == "Manually queued");
             var manualEntry = (PlaybackQueueEntry)Invoke(form, "AddQueuedSong", queued, queue.Items.Count, false); manualEntry.Audio = manualEntry.Audio.ToUpperInvariant();
             alreadyQueued["status"] = "completed"; alreadyQueued["stemStatus"] = "completed"; save(); Finish((Task)Invoke(form, "RefreshLibrary"));
-            Check(queue.Items.Count == 4 && queue.Items[2] == manualEntry && queue.Items.Last().Automatic, "Completion must not duplicate a manually queued song with different path casing or move it below automatic additions");
+            Check(queue.Items.Count == 4 && queue.Items.Last() == manualEntry && !manualEntry.Automatic, "Completion must not duplicate or reorder a manually queued song with different path casing");
             download("Queue read retry", true); File.WriteAllText(Path.Combine(root, "data", "queue.json"), "unfinished");
             Finish((Task)Invoke(form, "RefreshLibrary")); Check(queue.Items.Count == 4, "An unreadable download queue must leave playback entries intact");
             save(); Finish((Task)Invoke(form, "RefreshLibrary")); Check(queue.Items.Count == 5 && queue.Items.Last().Audio.EndsWith("Queue read retry.mp3"), "A later valid queue read must detect the completion once");
@@ -476,6 +477,77 @@ internal static class PlayerQueueTests
             Invoke(form, "CloseAudio");
         }
     }
+    private static void CompletedDownloadPriority(string root)
+    {
+        foreach (bool active in new[] { false, true })
+        foreach (bool manualChoices in new[] { false, true })
+        {
+            string folder = Path.Combine(root, active + "-" + manualChoices); Directory.CreateDirectory(folder);
+            SongInfo[] songs = Enumerable.Range(0, 9).Select(index => Song(folder, "Priority " + index, 120)).ToArray();
+            using (var form = new PlayerForm(folder, folder))
+            using (var bridge = new StemMixer(songs[0].Audio, ""))
+            using (var next = new StemMixer(songs[0].Audio, ""))
+            using (var cancellation = new CancellationTokenSource())
+            {
+                form.Disposed += delegate { Invoke(form, "CloseAudio"); }; IntPtr handle = form.Handle;
+                ((MixSlider)Get(form, "volume")).Value = 0;
+                Set(form, "songs", songs.ToList());
+                Finish((Task)Invoke(form, "LoadSong", songs[0], false, 0.0, false));
+                Set(form, "autoPlayEnabled", true); Set(form, "completedDownloadBaseline", true);
+                var queue = (PlaybackQueue)Get(form, "songQueue");
+                var mixer = (StemMixer)Get(form, "mixer"); var output = (WaveOutEvent)Get(form, "output");
+                var firstAuto = (PlaybackQueueEntry)Invoke(form, "AddQueuedSong", songs[1], queue.Items.Count, true);
+                var secondAuto = (PlaybackQueueEntry)Invoke(form, "AddQueuedSong", songs[2], queue.Items.Count, true);
+                var plan = new PreparedAutoTransition { Song = songs[1], QueueEntryId = firstAuto.Id, Reference = mixer, Bridge = active ? mixer : bridge, Next = next,
+                    Traits = new MusicTraits { Bpm = 120 }, Timing = new AutoTransitionTiming(120, 120, 16000, new AutoPlaySettings()) };
+                if (active) Set(form, "autoTransition", plan);
+                if (manualChoices)
+                {
+                    Invoke(form, "AddQueuedSong", songs[3], queue.Items.Count, false);
+                    Invoke(form, "AddQueuedSong", songs[4], queue.Items.Count, false);
+                }
+                if (!active)
+                {
+                    plan.QueueEntryId = queue.Next.Id; plan.Song = songs.First(song => song.Audio == queue.Next.Audio);
+                    Set(form, "autoTransition", plan);
+                }
+                Set(form, "autoCancellation", cancellation);
+                string[] originalOrder = queue.Items.Select(entry => entry.Id).ToArray();
+                Func<int, string, PlayerLibrary.CompletedDownload> completed = (song, id) => new PlayerLibrary.CompletedDownload { Id = id, Song = songs[song], FinishedAt = DateTime.UtcNow };
+                var downloads = new List<PlayerLibrary.CompletedDownload> { completed(5, "first"), completed(6, "second") };
+                ((PlayerPlayback)Get(form, "playback")).SetOutroLoop(0, mixer.TotalFrames); output.Play();
+                try
+                {
+                    Invoke(form, "QueueCompletedDownloads", downloads);
+                    int expected = 1 + (active ? 1 : 0) + (manualChoices ? 2 : 0);
+                    Check(queue.Items[expected].Audio == songs[5].Audio && queue.Items[expected + 1].Audio == songs[6].Audio, "New downloads must follow the last manual choice and precede autoplay suggestions, including an active handoff");
+                    Check(!queue.Items[expected].Automatic && !queue.Items[expected + 1].Automatic, "Downloaded songs must retain the same priority as manually queued songs");
+                    Check(queue.Items.Where(entry => entry.Audio != songs[5].Audio && entry.Audio != songs[6].Audio).Select(entry => entry.Id).SequenceEqual(originalOrder), "Inserting downloads must retain the relative order and identity of existing songs");
+                    Check(output.PlaybackState == PlaybackState.Playing && Get(form, "current") == songs[0], "Download insertion must keep the current audio playing");
+                    if (active) Check(Get(form, "autoTransition") == plan && queue.Next == firstAuto && !cancellation.IsCancellationRequested, "A download must wait behind the song already transitioning");
+                    else if (!manualChoices) Check(Get(form, "autoTransition") == null && cancellation.IsCancellationRequested, "A priority download must invalidate a different prepared next song before its transition starts");
+                    else Check(Get(form, "autoTransition") == plan && !cancellation.IsCancellationRequested, "Downloads following existing manual choices must preserve an unchanged prepared next song");
+                    int count = queue.Items.Count; Invoke(form, "QueueCompletedDownloads", downloads);
+                    Check(queue.Items.Count == count, "A later refresh must not queue a completed download twice");
+                    var manual = (PlaybackQueueEntry)Invoke(form, "AddQueuedSong", songs[7], queue.Items.Count, false);
+                    Check(queue.Items.IndexOf(manual) == expected + 2, "A later manual choice must join the same priority group after earlier downloads");
+                    Invoke(form, "QueueCompletedDownloads", new List<PlayerLibrary.CompletedDownload> { completed(8, "later") });
+                    Check(queue.Items[expected + 3].Audio == songs[8].Audio, "A later download must follow later manual additions in arrival order");
+                    Invoke(form, "QueueCompletedDownloads", new List<PlayerLibrary.CompletedDownload> { completed(2, "already-suggested") });
+                    Check(!secondAuto.Automatic && queue.Items[expected + 4] == secondAuto && queue.Items.Count == count + 2, "A downloaded song already suggested by autoplay must promote its existing row without duplication");
+                    string[] beforeDuplicate = queue.Items.Select(entry => entry.Id).ToArray();
+                    Invoke(form, "QueueCompletedDownloads", new List<PlayerLibrary.CompletedDownload> { completed(7, "already-manual") });
+                    Check(queue.Items.Select(entry => entry.Id).SequenceEqual(beforeDuplicate), "Completion of an already manual song must leave its position and identity unchanged");
+                    if (active)
+                    {
+                        Invoke(form, "QueueCompletedDownloads", new List<PlayerLibrary.CompletedDownload> { completed(1, "locked") });
+                        Check(queue.Items.Select(entry => entry.Id).SequenceEqual(beforeDuplicate) && Get(form, "autoTransition") == plan, "Completion must not move or duplicate the locked incoming song");
+                    }
+                }
+                finally { Set(form, "autoTransition", null); Set(form, "autoCancellation", null); }
+            }
+        }
+    }
     [STAThread]
     private static int Main(string[] args)
     {
@@ -484,7 +556,7 @@ internal static class PlayerQueueTests
         try
         {
             if (args.Contains("--priority")) { ManualPriority(root); Console.WriteLine("Manual queue priority: " + checks + " checks passed."); return 0; }
-            Model(); ManualPriority(Path.Combine(root, "priority")); Interface(root); HistoryInterface(Path.Combine(root, "history")); Playback(Path.Combine(root, "playback")); Navigation(Path.Combine(root, "navigation")); RandomPlayback(Path.Combine(root, "random-playback")); AutoHistoryFallback(Path.Combine(root, "auto-history-fallback")); CompletedDownloads(Path.Combine(root, "completed-downloads")); Console.WriteLine("Playback queue: " + checks + " checks passed."); return 0;
+            Model(); ManualPriority(Path.Combine(root, "priority")); Interface(root); HistoryInterface(Path.Combine(root, "history")); Playback(Path.Combine(root, "playback")); Navigation(Path.Combine(root, "navigation")); RandomPlayback(Path.Combine(root, "random-playback")); AutoHistoryFallback(Path.Combine(root, "auto-history-fallback")); CompletedDownloads(Path.Combine(root, "completed-downloads")); CompletedDownloadPriority(Path.Combine(root, "download-priority")); Console.WriteLine("Playback queue: " + checks + " checks passed."); return 0;
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
         finally { Directory.Delete(root, true); }

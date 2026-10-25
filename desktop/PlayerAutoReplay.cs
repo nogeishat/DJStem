@@ -9,6 +9,19 @@ using System.Threading;
 internal sealed class AutoReplayAnalysis
 {
     private readonly AutoAudioDynamics[] stems;
+    private sealed class ReplayPlan
+    {
+        internal double Bpm, Phase, TransitionStart;
+        internal int Rate;
+        internal long End, Position;
+        internal bool Early;
+        internal AutoLoopTiming Loop;
+        internal bool Matches(double bpm, double phase, int rate, long end, long position, double start, bool early)
+        {
+            return Bpm == bpm && Phase == phase && Rate == rate && End == end && Position == position && TransitionStart == start && Early == early;
+        }
+    }
+    private readonly List<ReplayPlan> plans = new List<ReplayPlan>();
     private AutoReplayAnalysis(AutoAudioDynamics[] values) { stems = values; }
     internal static AutoReplayAnalysis Read(string[] files, PlaybackTransform[] transforms, CancellationToken token)
     {
@@ -44,6 +57,39 @@ internal sealed class AutoReplayAnalysis
     }
 
     internal AutoLoopTiming Plan(double bpm, double phase, int rate, long endFrame, long position, double transitionStart, bool early = false)
+    {
+        // Incoming mixers stay parked at the same position until handoff. The
+        // autoplay UI timer asks for this same protection every 100 ms. Analysis
+        // and loop timings are immutable, so retain a small set of exact results
+        // rather than repeating the drum/phrase search on the scrolling thread.
+        lock (plans)
+        {
+            AutoLoopTiming cached = FindPlan(bpm, phase, rate, endFrame, position, transitionStart, early);
+            if (cached != null) return cached;
+        }
+        // Do not hold the cache lock during analysis: a background preparation
+        // must not make a UI cache hit wait for a different, expensive search.
+        AutoLoopTiming result = BuildPlan(bpm, phase, rate, endFrame, position, transitionStart, early);
+        lock (plans)
+        {
+            AutoLoopTiming cached = FindPlan(bpm, phase, rate, endFrame, position, transitionStart, early);
+            if (cached != null) return cached;
+            if (plans.Count == 8) plans.RemoveAt(0);
+            plans.Add(new ReplayPlan { Bpm = bpm, Phase = phase, Rate = rate, End = endFrame, Position = position, TransitionStart = transitionStart, Early = early, Loop = result });
+        }
+        return result;
+    }
+    private AutoLoopTiming FindPlan(double bpm, double phase, int rate, long endFrame, long position, double transitionStart, bool early)
+    {
+        for (int index = 0; index < plans.Count; index++)
+        {
+            ReplayPlan plan = plans[index];
+            if (!plan.Matches(bpm, phase, rate, endFrame, position, transitionStart, early)) continue;
+            plans.RemoveAt(index); plans.Add(plan); return plan.Loop;
+        }
+        return null;
+    }
+    private AutoLoopTiming BuildPlan(double bpm, double phase, int rate, long endFrame, long position, double transitionStart, bool early)
     {
         AutoLoopTiming fallback = Fallback(bpm, phase, rate, endFrame, position, transitionStart);
         double beat = 60 / bpm, bar = beat * 4, end = endFrame / (double)rate;

@@ -706,7 +706,9 @@ internal sealed class WaveformView : Control
     internal bool Audible = true;
     internal double Duration, SourceDuration;
     private double SourceLength { get { return SourceDuration > 0 ? SourceDuration : Duration; } }
-    internal double Bpm, CursorProgress = -1;
+    internal double Bpm;
+    private double cursorProgress = -1;
+    internal double CursorProgress { get { return cursorProgress; } set { if (cursorProgress == value) return; cursorProgress = value; Invalidate(); } }
     internal Func<bool> BeginGesture;
     internal event Action<double, bool> ShiftChanged;
     internal event Action<double> LoopRequested, LoopEndChanged;
@@ -721,13 +723,17 @@ internal sealed class WaveformView : Control
     internal bool Gesturing { get { return rightHeld || resizing; } }
     private double progress;
     internal event Action<double> Seek;
-    internal double Progress { get { return progress; } set { progress = Math.Max(0, Math.Min(1, value)); Invalidate(); } }
+    internal double Progress { get { return progress; } set { double next = Math.Max(0, Math.Min(1, value)); if (progress == next) return; progress = next; Invalidate(); } }
     internal WaveformView()
     {
         SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.Selectable, true); BackColor = Color.Transparent; TabStop = true; Cursor = Cursors.Hand; AccessibleRole = AccessibleRole.Slider;
         holdTimer.Tick += delegate { ActivateHeldLoop(); };
     }
-    internal void ShowTiming(StemTiming state) { timing = state; Invalidate(); }
+    internal void ShowTiming(StemTiming state)
+    {
+        if (timing.Shift == state.Shift && timing.LoopStart == state.LoopStart && timing.LoopEnd == state.LoopEnd && timing.LoopAnchor == state.LoopAnchor && timing.LoopShift == state.LoopShift) return;
+        timing = state.Copy(); Invalidate();
+    }
     internal void ResetGesture()
     {
         holdTimer.Stop(); rightHeld = shifting = resizing = false; if (Capture) Capture = false; Cursor = Cursors.Hand;
