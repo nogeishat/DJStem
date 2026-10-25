@@ -1,0 +1,43 @@
+{
+  "volume": 42,
+  "original": false,
+  "muted": [
+    false,
+    false,
+    false,
+    false
+  ],
+  "solo": [
+    false,
+    false,
+    false,
+    false
+  ],
+  "levels": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "preset": "custom",
+  "hoverInfoEnabled": true,
+  "autoPlay": true,
+  "autoPlaySettings": {
+    "below": 10,
+    "above": 10,
+    "rampBars": 2,
+    "stemBars": 8,
+    "endCutBars": 10,
+    "earlyStemTransitions": true,
+    "order": [
+      1,
+      2,
+      3,
+      0
+    ]
+  },
+  "tuningReferenceHz": null,
+  "audio": null,
+  "savedMixes": [],
+  "playlists": []
+}

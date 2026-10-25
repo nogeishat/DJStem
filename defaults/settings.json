@@ -1,0 +1,6 @@
+{
+  "libraryRoot": ".",
+  "matchedStemsRoot": "matched-stems",
+  "matchedStemsMaxGb": 10,
+  "separationDevice": "auto"
+}

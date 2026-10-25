@@ -1,0 +1,10 @@
+/data/
+/downloads/
+/tools/
+*.log
+__pycache__/
+*.pyc
+/StemKit-USB/
+/StemDrop/
+/releases/
+/settings.json

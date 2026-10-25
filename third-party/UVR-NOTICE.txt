@@ -1,0 +1,14 @@
+Ultimate Vocal Remover (UVR)
+https://github.com/Anjok07/ultimatevocalremovergui
+Pinned source: 5517e0cf0d1acd16a1618eeedec596957523f9e1
+
+Credit to UVR's developers, Anjok07 and the contributors listed in tools/uvr/README.md,
+and to the Demucs and MDX-Net model authors. DJStem uses the UVR engine and the
+UVR-MDX-NET Inst HQ 5 model; it does not use UVR's graphical application or branding.
+
+UVR's README declares its code MIT-licensed and asks third-party application
+developers using its models to credit UVR and its developers. That README and
+the complete pinned engine source are included in tools/uvr/.
+
+Model source: https://github.com/TRvlvr/model_repo/releases/tag/all_public_uvr_models
+Demucs source: https://github.com/facebookresearch/demucs
