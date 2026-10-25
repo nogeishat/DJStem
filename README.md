@@ -17,6 +17,17 @@ Requires 64-bit Windows 10/11, .NET Framework 4.8 and Windows audio/media compon
 
 Smart App Control can allow unsigned apps through Microsoft reputation, or apps signed by a trusted publisher. Neither Artifact Signing nor an open-source signing programme is mandatory. Microsoft file-review materials are prepared only; no review has been submitted and no signing-policy fix is claimed. Windows security policies are not changed by the app.
 
+# How to use
+
+Preferable to choose the music folder separately from main apps folder so it is easier to upgrade to newer version.
+
+The + button at the top left screen opens (loads in very slowly, be patient) a box in which you can add youtube and soundcloud links by ctrl V link -> left click in box -> ctrl C, if it show that something has failed then right click and try again.
+
+When "Auto play" is on the transitions happens smoothly.
+When "Auto play" is off you can drag and drop songs into currently playing songs stems it will match the dragged songs bpm to current songs and then using stem buttons you can change between original stems and dragged in stems. If you drag the third or fourth song then you can change only between the lastly dragged in and original stem.
+
+Everything else should look self explanatory.
+
 ## Your library
 
 On first launch choose **Create a new library** or **Use an existing library**. This folder holds your MP3s, stems, artwork, playlists, saved mixes, preferences, history and generated caches. New libraries use the release's defaults; existing preferences and contents are preserved.
