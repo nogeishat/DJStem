@@ -1,8 +1,11 @@
 # Windows trust status
 
-**DJStem 1.0.0 and 1.0.1 are unsigned. Smart App Control has blocked setup,
-player and the link drop box on the test PC. Compatibility remains unverified.**
-The 1.0.1 log fix resolves the log-sharing bug; it does not resolve Windows trust.
+**DJStem 1.0.2 is unsigned, as were 1.0.0 and the withdrawn 1.0.1. Smart App
+Control has blocked setup, player and the link drop box on the test PC.
+Compatibility remains unverified.**
+The 1.0.2 launcher and shutdown fixes do not resolve Windows trust. A Code
+Integrity event 3077 for the installed 1.0.0 drop box confirms that its
+`spawn UNKNOWN` startup failure was a signing-policy block.
 
 Smart App Control can allow an unsigned file when Microsoft has enough positive
 reputation for it. Otherwise, an unknown unsigned file is blocked. Microsoft

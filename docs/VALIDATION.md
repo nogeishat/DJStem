@@ -1,4 +1,33 @@
-# DJStem 1.0.0 validation
+# DJStem validation
+
+## 1.0.2 launcher and shutdown patch
+
+Validated on 25 October 2026. All 77 Node.js tests pass. Added real missing-child
+and interrupted-child checks and an open HTTP response at window shutdown;
+the owned service closes and releases its port. Native launcher regressions
+also reproduce 1.0.0's self-conflicting log read without another DJStem process.
+The old player log was unlocked with the visible app closed, but a hidden legacy
+launcher/service was later found still serving the original library. Windows
+denied access to that process's executable details and termination. In 1.0.0,
+a synchronous spawn failure occurs before the shutdown handler is registered,
+leaving the downloader alive. The corrected launch path always stops its worker
+and service, including that failure case.
+
+The installed downloader's `spawn UNKNOWN` log corresponds to Windows Code
+Integrity event 3077 for `tools/StemKit.exe`: Windows rejected its signing level.
+This is separate from the corrected log-sharing and shutdown bugs. These builds
+remain unsigned; acceptance under Smart App Control is unverified.
+
+Both assembled 1.0.2 editions passed private-runtime isolation, model checksums,
+selected-library service and native audio/decoder/icon verification. All 153
+native browser/settings checks and eight drop-format/polling checks passed.
+Both final installer archives passed full integrity checks. The rebuilt player
+opened and Add songs correctly passed the selected library and reported an
+existing-service conflict. The rebuilt drop box opened, closed, reopened using
+the same isolated library and closed again; each owned service shut down. This
+window check used separate local ports because the legacy service was still
+answering on the normal release port. It does not establish acceptance of the
+downloaded installers under Smart App Control.
 
 ## 1.0.1 launcher patch
 

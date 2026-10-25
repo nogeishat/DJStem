@@ -47,6 +47,7 @@ Write-Json (Join-Path $app 'release-build.json') @{version=$version;edition=$Edi
 # Refresh app sources on every build while keeping the large assembled runtimes.
 foreach ($folder in @('desktop','lib','scripts','assets','defaults','third-party')) { Copy-Tree (Join-Path $projectRoot $folder) (Join-Path $app $folder) }
 foreach ($file in @('server.mjs','package.json','package-lock.json','THIRD-PARTY-NOTICES.md','LICENSE')) { Copy-Item -LiteralPath (Join-Path $projectRoot $file) -Destination $app }
+Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/RELEASE-README.md') -Destination (Join-Path $app 'README.txt') -Force
 # Native Python fallback and entry points use the release's private runtime.
 foreach ($file in @('lib/analysis.mjs','lib/stems.mjs')) { $targetFile=Join-Path $app $file; $text=[IO.File]::ReadAllText($targetFile).Replace("'stem-runtime', 'Scripts', 'python.exe'","'stem-runtime', 'python.exe'"); [IO.File]::WriteAllText($targetFile,$text,[Text.UTF8Encoding]::new($false)) }
 $matching = Join-Path $app 'desktop/PlayerMatching.cs'; [IO.File]::WriteAllText($matching,[IO.File]::ReadAllText($matching).Replace('"stem-runtime", "Scripts", "python.exe"','"stem-runtime", "python.exe"'),[Text.UTF8Encoding]::new($false))

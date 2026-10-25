@@ -14,6 +14,15 @@ internal static class ReleaseLauncherTests
             Check(ReleaseLauncher.ResolveMode(new[] { "--downloader", "--library", library }) == "downloader", "Add songs did not select downloader mode.");
             Check(ReleaseLauncher.ResolveMode(new[] { "--check" }) == "check", "Check mode changed.");
             string legacy = Path.Combine(data, "launcher-player.log");
+            // 1.0.0 reads its error log before disposing this writer. Even with
+            // no other DJStem process, File.ReadAllText requests incompatible sharing.
+            using (StreamWriter original = new StreamWriter(legacy, false))
+            {
+                original.WriteLine("original startup error"); original.Flush();
+                bool reproduced = false;
+                try { File.ReadAllText(legacy); } catch (IOException) { reproduced = true; }
+                Check(reproduced, "The original launcher's self-conflicting error-log read was not reproduced.");
+            }
             using (FileStream locked = new FileStream(legacy, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 string first, second, downloader;

@@ -6,16 +6,16 @@ A Windows music player with YouTube/SoundCloud link downloads, four-stem separat
 
 **Smart App Control status: the current installers and app executables are unsigned. Windows has blocked them on the test PC; compatibility is not confirmed.** A minimal application change cannot guarantee acceptance. See [Windows trust status and the Microsoft file-review route](docs/CODE-SIGNING.md).
 
-Latest available download: **1.0.0**. Existing unsigned test downloads from [Releases](https://github.com/nogeishat/DJStem/releases/tag/v1.0.0):
+Latest available download: **1.0.2**, including the launcher and drop-box shutdown fixes. Unsigned downloads from [Releases](https://github.com/nogeishat/DJStem/releases/tag/v1.0.2):
 
-- [CPU edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.0/DJStem-1.0.0-Windows-x64-cpu-Setup.exe) — CPU stem separation.
-- [NVIDIA edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.0/DJStem-1.0.0-Windows-x64-nvidia-Setup.exe) — NVIDIA GPU acceleration with a CPU-only option.
+- [CPU edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.2/DJStem-1.0.2-Windows-x64-cpu-Setup.exe) — CPU stem separation.
+- [NVIDIA edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.2/DJStem-1.0.2-Windows-x64-nvidia-Setup.exe) — NVIDIA GPU acceleration with a CPU-only option.
 
 Both installers include Node.js, Python, FFmpeg, yt-dlp, native audio libraries and both separation models. No additional setup downloads are required. Both editions otherwise have the same features and library format.
 
 Requires 64-bit Windows 10/11, .NET Framework 4.8 and Windows audio/media components. The NVIDIA edition needs a GPU and driver compatible with CUDA 12.4/PyTorch 2.5.1; it falls back to CPU when CUDA is unavailable. Windows N may require Microsoft's Media Feature Pack.
 
-Smart App Control can allow unsigned apps through Microsoft reputation, or apps signed by a trusted publisher. Neither Artifact Signing nor an open-source signing programme is mandatory. Microsoft file review is being prepared; no approval or working fix is claimed. Windows security policies are not changed by the app.
+Smart App Control can allow unsigned apps through Microsoft reputation, or apps signed by a trusted publisher. Neither Artifact Signing nor an open-source signing programme is mandatory. Microsoft file-review materials are prepared only; no review has been submitted and no signing-policy fix is claimed. Windows security policies are not changed by the app.
 
 ## Your library
 

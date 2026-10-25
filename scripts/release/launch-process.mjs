@@ -21,7 +21,12 @@ export async function launchWindow({ executable, args = [], label, app, spawnPro
     signals.removeListener('SIGINT', stop); signals.removeListener('SIGTERM', stop);
     if (app) {
       app.worker.stop();
-      if (app.server.listening) await new Promise((resolve, reject) => app.server.close(error => error ? reject(error) : resolve()));
+      if (app.server.listening) await new Promise((resolve, reject) => {
+        app.server.close(error => error ? reject(error) : resolve());
+        // An unfinished local HTTP request must not keep Node and its launch log
+        // alive after the drop box closes. The worker has already been stopped.
+        app.server.closeAllConnections();
+      });
     }
   }
 }
