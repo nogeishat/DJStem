@@ -1,5 +1,17 @@
 # DJStem 1.0.0 validation
 
+## 1.0.1 launcher patch
+
+Validated on 25 October 2026. The launcher regression reproduces the original
+locked `launcher-player.log` and verifies concurrent launch logs, reading a log
+while its writer is active, retaining the original startup error, rapid starts,
+and downloader/player mode selection. All 74 Node.js tests and 153 native browser
+checks passed. Real child-process failures release their owned service port.
+The 1.0.0 separation runtimes and models are unchanged. The Windows signing-policy
+block remains a separate limitation of these unsigned builds.
+
+## Initial release
+
 Validated on 25 October 2026 on 64-bit Windows, using fresh test library folders.
 The original music library and its playlists/mixes were not included in the packages.
 

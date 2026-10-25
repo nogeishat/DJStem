@@ -8,7 +8,7 @@ export function initializeLibrary(appRoot, selected) {
   let marker = {};
   if (fs.existsSync(markerFile)) {
     marker = JSON.parse(fs.readFileSync(markerFile, 'utf8'));
-    if (marker.format !== 'djstem-library' || marker.version !== 1) throw new Error('This library format is not supported by DJStem 1.0.0.');
+    if (marker.format !== 'djstem-library' || marker.version !== 1) throw new Error('This library format is not supported by this version of DJStem.');
   }
   for (const name of ['mp3', 'stems', 'data', 'matched-stems']) fs.mkdirSync(path.join(library, name), { recursive: true });
   const defaults = JSON.parse(fs.readFileSync(path.join(appRoot, 'defaults', 'settings.json'), 'utf8'));

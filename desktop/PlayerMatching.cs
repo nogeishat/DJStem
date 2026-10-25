@@ -207,7 +207,7 @@ internal static class PlayerMatching
         try { using (WaveFileReader reader = new WaveFileReader(file)) return reader.WaveFormat.SampleRate == rate && reader.WaveFormat.Channels == 2 && reader.Length / reader.WaveFormat.BlockAlign == frames; } catch { return false; }
     }
     // Quote for Windows CreateProcess, never through a shell.
-    private static string Quote(string value)
+    internal static string Quote(string value)
     {
         StringBuilder result = new StringBuilder("\""); int slashes = 0;
         foreach (char c in value)

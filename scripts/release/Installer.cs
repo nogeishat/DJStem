@@ -9,8 +9,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("DJStem Setup")]
 [assembly: AssemblyProduct("DJStem")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 internal sealed class Installer : Form
 {
     private readonly string source = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "app");
@@ -24,8 +24,8 @@ internal sealed class Installer : Form
     internal Installer()
     {
         string build = File.ReadAllText(Path.Combine(source,"release-build.json")); edition = build.Contains("nvidia") ? "NVIDIA" : "CPU";
-        Text = "DJStem 1.0.0 Setup — " + edition; ClientSize = new Size(640, 362); FormBorderStyle = FormBorderStyle.FixedDialog; StartPosition = FormStartPosition.CenterScreen; MaximizeBox = MinimizeBox = false; Font = new Font("Segoe UI", 10); Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
-        Controls.Add(new Label { Text = "Install DJStem 1.0.0", Font = new Font("Segoe UI", 17, FontStyle.Bold), Bounds = new Rectangle(24,18,590,40) });
+        Text = "DJStem 1.0.1 Setup — " + edition; ClientSize = new Size(640, 362); FormBorderStyle = FormBorderStyle.FixedDialog; StartPosition = FormStartPosition.CenterScreen; MaximizeBox = MinimizeBox = false; Font = new Font("Segoe UI", 10); Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        Controls.Add(new Label { Text = "Install DJStem 1.0.1", Font = new Font("Segoe UI", 17, FontStyle.Bold), Bounds = new Rectangle(24,18,590,40) });
         Controls.Add(new Label { Text = edition == "NVIDIA" ? "NVIDIA edition · GPU or CPU stem separation" : "CPU edition · CPU stem separation", Bounds = new Rectangle(26,65,590,27) });
         Controls.Add(new Label { Text = "All required runtimes and separation models are included.\nYou will choose a separate folder for your music and settings on first launch.", Bounds = new Rectangle(26,96,590,48) });
         destination.Bounds = new Rectangle(26,154,470,28); destination.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","DJStem-"+edition); Controls.Add(destination);
@@ -74,7 +74,7 @@ internal sealed class Installer : Form
     private static void MakeShortcut(string path,string root,string arguments)
     {
         Type shellType = Type.GetTypeFromProgID("WScript.Shell"); object shell = Activator.CreateInstance(shellType); object link = shellType.InvokeMember("CreateShortcut",BindingFlags.InvokeMethod,null,shell,new object[]{path}); Type type = link.GetType();
-        foreach (var pair in new[] { new[] {"TargetPath",Path.Combine(root,"DJStem.exe")},new[] {"WorkingDirectory",root},new[] {"Arguments",arguments},new[] {"IconLocation",Path.Combine(root,"DJStem.exe")+",0"},new[] {"Description","DJStem 1.0.0"} }) type.InvokeMember(pair[0],BindingFlags.SetProperty,null,link,new object[]{pair[1]});
+        foreach (var pair in new[] { new[] {"TargetPath",Path.Combine(root,"DJStem.exe")},new[] {"WorkingDirectory",root},new[] {"Arguments",arguments},new[] {"IconLocation",Path.Combine(root,"DJStem.exe")+",0"},new[] {"Description","DJStem 1.0.1"} }) type.InvokeMember(pair[0],BindingFlags.SetProperty,null,link,new object[]{pair[1]});
         type.InvokeMember("Save",BindingFlags.InvokeMethod,null,link,null);
         System.Runtime.InteropServices.Marshal.FinalReleaseComObject(link); System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);
     }

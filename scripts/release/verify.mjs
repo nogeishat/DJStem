@@ -30,6 +30,7 @@ export async function verifyRelease(root, library, edition) {
     checks.service = { library: state.downloadsDir, jobs: state.jobs.length };
   } finally { await new Promise(resolve => app.server.close(resolve)); }
   checks.native = await run(path.join(root, 'tools', 'ReleaseProbe.exe'));
-  atomicJson(path.join(library, 'data', 'release-check.json'), { passed: true, version:'1.0.0', edition, ...checks });
+  const build = JSON.parse(fs.readFileSync(path.join(root, 'release-build.json'), 'utf8'));
+  atomicJson(path.join(library, 'data', 'release-check.json'), { passed: true, version:build.version, edition, ...checks });
   console.log(JSON.stringify(checks, null, 2));
 }

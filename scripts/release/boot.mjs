@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { initializeLibrary, configureRelease } from './library.mjs';
+import { launchWindow } from './launch-process.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const mode = process.argv[2] || 'player';
@@ -21,14 +21,8 @@ try {
     try { const response = await fetch(address + '/api/state', { signal: AbortSignal.timeout(1000) }); if (response.ok) existing = await response.json(); } catch { }
     if (existing && path.resolve(existing.downloadsDir).toLowerCase() !== library.toLowerCase()) throw new Error('Close the other DJStem downloader before opening a different library.');
     if (!existing) app = await startServer();
-    const desktop = spawn(path.join(root, 'tools', 'StemKit.exe'), [app?.address || address, library], { windowsHide: false, stdio: 'ignore' });
-    let closing = false;
-    const close = () => { if (closing) return; closing = true; app?.worker.stop(); app?.server.close(); setTimeout(() => process.exit(0), 1500).unref(); };
-    desktop.once('error', error => { console.error(error); close(); }); desktop.once('exit', close);
-    process.once('SIGINT', close); process.once('SIGTERM', close);
+    await launchWindow({ executable: path.join(root, 'tools', 'StemKit.exe'), args: [app?.address || address, library], label: 'the link drop box', app });
   } else if (mode === 'player') {
-    const child = spawn(path.join(root, 'tools', 'StemKitPlayer.exe'), [library], { windowsHide: false, stdio: 'inherit' });
-    child.once('error', error => { console.error(error); process.exitCode = 1; });
-    child.once('exit', code => { process.exitCode = code || 0; });
+    await launchWindow({ executable: path.join(root, 'tools', 'StemKitPlayer.exe'), args: [library], label: 'the player', stdio: 'inherit' });
   } else throw new Error('Unknown DJStem launch mode.');
 } catch (error) { console.error(error.stack || error); process.exitCode = 1; }

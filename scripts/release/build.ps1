@@ -1,7 +1,8 @@
 param([ValidateSet('cpu','nvidia')][string]$Edition='cpu',[switch]$Package)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$releaseRoot = Join-Path $projectRoot 'releases/1.0.0'
+$version = (Get-Content -LiteralPath (Join-Path $projectRoot 'package.json') -Raw | ConvertFrom-Json).version
+$releaseRoot = Join-Path $projectRoot "releases/$version"
 $stage = Join-Path $releaseRoot "staging/$Edition"
 $app = Join-Path $stage 'app'
 $support = Join-Path $projectRoot 'tools/release-support'
@@ -41,8 +42,8 @@ if (!(Test-Path -LiteralPath $app)) {
         & (Join-Path $runtime 'python.exe') -m pip install --isolated --no-index --no-deps --disable-pip-version-check --find-links (Join-Path $support 'cpu-wheels') torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 onnxruntime==1.20.1
         if($LASTEXITCODE) { throw 'CPU runtime installation failed.' }
     }
-    Write-Json (Join-Path $app 'release-build.json') @{version='1.0.0';edition=$Edition;platform='win32-x64';uvrCommit='5517e0cf0d1acd16a1618eeedec596957523f9e1';createdAt=[DateTime]::UtcNow.ToString('o')}
 }
+Write-Json (Join-Path $app 'release-build.json') @{version=$version;edition=$Edition;platform='win32-x64';uvrCommit='5517e0cf0d1acd16a1618eeedec596957523f9e1';createdAt=[DateTime]::UtcNow.ToString('o')}
 # Refresh app sources on every build while keeping the large assembled runtimes.
 foreach ($folder in @('desktop','lib','scripts','assets','defaults','third-party')) { Copy-Tree (Join-Path $projectRoot $folder) (Join-Path $app $folder) }
 foreach ($file in @('server.mjs','package.json','package-lock.json','THIRD-PARTY-NOTICES.md','LICENSE')) { Copy-Item -LiteralPath (Join-Path $projectRoot $file) -Destination $app }
@@ -72,13 +73,13 @@ foreach ($relative in @('Lib/site-packages/torch/include','Lib/site-packages/tor
 & $node (Join-Path $PSScriptRoot 'manifest.mjs') $app
 if($LASTEXITCODE) { throw 'Dependency manifest generation failed.' }
 if($Package) {
-    $archive=Join-Path $releaseRoot "DJStem-1.0.0-Windows-x64-$Edition.7z"
+    $archive=Join-Path $releaseRoot "DJStem-$version-Windows-x64-$Edition.7z"
     & (Join-Path $support '7zip/x64/7za.exe') a -t7z $archive (Join-Path $stage '*') -mx=9 -m0=LZMA2 -md=128m -mfb=64 -ms=256m -mmt=4 -bsp0 -bb0
     if($LASTEXITCODE) { throw 'Release compression failed.' }
     $stub=Join-Path $releaseRoot "sfx-$Edition.exe"; Copy-Item -LiteralPath (Join-Path $support 'lzma/bin/7zSD.sfx') -Destination $stub -Force
     & (Join-Path $PSScriptRoot 'set-exe-icon.ps1') -Executable $stub -Icon $icon
-    $configuration=[Text.Encoding]::UTF8.GetBytes(";!@Install@!UTF-8!`nTitle=`"DJStem 1.0.0 — $Edition`"`nRunProgram=`"Setup.exe`"`n;!@InstallEnd@!`n")
-    $output=Join-Path $releaseRoot "DJStem-1.0.0-Windows-x64-$Edition-Setup.exe"
+    $configuration=[Text.Encoding]::UTF8.GetBytes(";!@Install@!UTF-8!`nTitle=`"DJStem $version — $Edition`"`nRunProgram=`"Setup.exe`"`n;!@InstallEnd@!`n")
+    $output=Join-Path $releaseRoot "DJStem-$version-Windows-x64-$Edition-Setup.exe"
     $stream=[IO.File]::Create($output)
     try { foreach($part in @($stub,$null,$archive)) { if($null -eq $part) { $stream.Write($configuration,0,$configuration.Length) } else { $inputStream=[IO.File]::OpenRead($part); try { $inputStream.CopyTo($stream) } finally { $inputStream.Dispose() } } } } finally { $stream.Dispose() }
     if((Get-Item -LiteralPath $output).Length -ge 2GB) { throw 'The single installer exceeds GitHub release asset limit (2 GiB).' }

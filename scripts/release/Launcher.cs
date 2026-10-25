@@ -6,20 +6,40 @@ using System.Reflection;
 using System.Text;
 using System.Web.Script.Serialization;
 using System.Collections.Generic;
+using System.Threading;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("DJStem")]
 [assembly: AssemblyProduct("DJStem")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 internal static class ReleaseLauncher
 {
     private static readonly object LogLock = new object();
+    internal static string ResolveMode(string[] args) { return Array.IndexOf(args, "--downloader") >= 0 ? "downloader" : Array.IndexOf(args, "--check") >= 0 ? "check" : "player"; }
+    internal static StreamWriter OpenLog(string library, string mode, out string file)
+    {
+        string folder = Path.Combine(library, "data", "logs"); Directory.CreateDirectory(folder);
+        file = Path.Combine(folder, "launcher-" + mode + "-" + DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff") + "-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N") + ".log");
+        return new StreamWriter(new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete), new UTF8Encoding(false)) { AutoFlush = true };
+    }
+    private static void FocusExisting(string mode)
+    {
+        foreach (string name in new[] { mode == "downloader" ? "StemKit" : "StemKitPlayer", "DJStem" })
+        foreach (Process running in Process.GetProcessesByName(name))
+        {
+            using (running) { try { if (running.Id != Process.GetCurrentProcess().Id && running.MainWindowHandle != IntPtr.Zero) { ShowWindow(running.MainWindowHandle, 9); SetForegroundWindow(running.MainWindowHandle); return; } } catch { } }
+        }
+    }
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
     [STAThread]
     private static int Main(string[] args)
     {
         Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         string root = Path.GetDirectoryName(Application.ExecutablePath), log = null;
+        Mutex launchMutex = null; bool ownsMutex = false;
         try
         {
             string pointer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DJStem", "library-location.json");
@@ -40,15 +60,17 @@ internal static class ReleaseLauncher
                 File.WriteAllText(temporary, new JavaScriptSerializer().Serialize(new { library = library }));
                 if (File.Exists(pointer)) File.Replace(temporary, pointer, null); else File.Move(temporary, pointer);
             }
-            Directory.CreateDirectory(Path.Combine(library, "data"));
-            string mode = Array.IndexOf(args, "--downloader") >= 0 ? "downloader" : Array.IndexOf(args, "--check") >= 0 ? "check" : "player";
-            log = Path.Combine(library, "data", "launcher-" + mode + ".log");
-            using (StreamWriter writer = new StreamWriter(log, false, new UTF8Encoding(false)))
+            string mode = ResolveMode(args);
+            launchMutex = new Mutex(false, "Local\\DJStemLauncher-" + mode);
+            try { ownsMutex = launchMutex.WaitOne(0); } catch (AbandonedMutexException) { ownsMutex = true; }
+            if (!ownsMutex) { FocusExisting(mode); return 0; }
+            using (StreamWriter writer = OpenLog(library, mode, out log))
             using (Process process = new Process())
             {
-                writer.AutoFlush = true;
+                writer.WriteLine("DJStem 1.0.1: " + mode);
                 process.StartInfo = new ProcessStartInfo(Path.Combine(root, "tools", "node.exe"), "\"" + Path.Combine(root, "scripts", "release", "boot.mjs") + "\" " + mode) { WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
                 process.StartInfo.EnvironmentVariables["STEMKIT_USER_DATA"] = library;
+                process.StartInfo.EnvironmentVariables["STEMKIT_RELEASE_ROOT"] = root;
                 process.StartInfo.EnvironmentVariables.Remove("NODE_OPTIONS"); process.StartInfo.EnvironmentVariables.Remove("NODE_PATH");
                 process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) lock (LogLock) writer.WriteLine(e.Data); };
                 process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e) { if (e.Data != null) lock (LogLock) writer.WriteLine(e.Data); };
@@ -58,8 +80,17 @@ internal static class ReleaseLauncher
             return 0;
         }
         catch (Exception error) { MessageBox.Show(error.Message, "DJStem", MessageBoxButtons.OK, MessageBoxIcon.Error); return 1; }
+        finally { if (launchMutex != null) { if (ownsMutex) launchMutex.ReleaseMutex(); launchMutex.Dispose(); } }
     }
-    private static string Tail(string file) { string text = File.ReadAllText(file); return text.Length <= 1400 ? text : text.Substring(text.Length - 1400); }
+    internal static string Tail(string file)
+    {
+        try {
+            using (FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8)) {
+                string text = reader.ReadToEnd(); return text.Length <= 1400 ? text : text.Substring(text.Length - 1400);
+            }
+        } catch (Exception error) { return "Diagnostic log could not be read: " + error.Message; }
+    }
 }
 
 internal sealed class LibraryDialog : Form

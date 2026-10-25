@@ -1,4 +1,4 @@
-DJStem 1.0.0 — Windows 10/11, 64-bit
+DJStem 1.0.1 — Windows 10/11, 64-bit
 
 Open DJStem.exe to start the player. On first launch, choose a new library folder
 or select an existing DJStem library. Songs (mp3/ and stems/), playlists, saved
@@ -35,6 +35,10 @@ Your library layout:
 New libraries start with the release's default preferences. Existing preferences,
 playlists and mixes are retained. No personal songs, playlists, mixes or download
 history are included in this release.
+
+Version 1.0.1 fixes launcher log-file conflicts. Per-launch diagnostics are saved
+inside your library under data/logs/. Failed window launches stop their background
+service instead of leaving it running. Repeated launches focus the existing window.
 
 The installer creates an optional desktop shortcut with the pink circle icon.
 To uninstall, close the app, remove its application folder and shortcuts. Keep

@@ -490,7 +490,7 @@ internal sealed partial class PlayerForm : Form
         UpdateSaveMixButton();
         UpdateBrowserTransport(playing, position, length);
     }
-    private void OpenDropBox() { try { string launcher = Path.Combine(project, "DJStem.exe"); if (File.Exists(launcher)) Process.Start(launcher, "--downloader"); else Process.Start("wscript.exe", "\"" + Path.Combine(project, "Start-StemKit.vbs") + "\""); } catch (Exception error) { ShowError(error); } }
+    private void OpenDropBox() { try { string launcher = Path.Combine(project, "DJStem.exe"); if (File.Exists(launcher)) Process.Start(new ProcessStartInfo(launcher, "--downloader --library " + PlayerMatching.Quote(library)) { UseShellExecute = false, WorkingDirectory = project }); else Process.Start("wscript.exe", "\"" + Path.Combine(project, "Start-StemKit.vbs") + "\""); } catch (Exception error) { ShowError(error); } }
     private void ShowError(Exception error) { message.ForeColor = PlayerTheme.Stems[1]; message.Text = error.Message; tip.SetToolTip(message, error.ToString()); }
     private void ReadPreferences()
     {

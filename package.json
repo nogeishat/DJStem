@@ -1,6 +1,6 @@
 {
   "name": "djstem",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,7 +29,10 @@
     "test": "node --test test/*.test.mjs",
     "test:desktop": "node scripts/check-desktop.mjs",
     "setup:stems": "node scripts/setup-stems.mjs",
-    "update:downloader": "node scripts/setup.mjs --update"
+    "update:downloader": "node scripts/setup.mjs --update",
+    "test:launcher": "node scripts/check-launcher.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }
