@@ -1,5 +1,10 @@
 DJStem 1.0.1 — Windows 10/11, 64-bit
 
+Windows trust notice: this release is unsigned. Smart App Control has blocked
+setup and app executables on the test PC. The 1.0.1 log fix does not resolve that
+trust decision. Check the current release status before downloading:
+https://github.com/nogeishat/DJStem/blob/main/docs/CODE-SIGNING.md
+
 Open DJStem.exe to start the player. On first launch, choose a new library folder
 or select an existing DJStem library. Songs (mp3/ and stems/), playlists, saved
 mixes, preferences, download history and caches all stay inside that folder.
