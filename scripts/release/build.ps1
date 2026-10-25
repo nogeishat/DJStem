@@ -74,7 +74,8 @@ foreach ($relative in @('Lib/site-packages/torch/include','Lib/site-packages/tor
 if($LASTEXITCODE) { throw 'Dependency manifest generation failed.' }
 if($Package) {
     $archive=Join-Path $releaseRoot "DJStem-$version-Windows-x64-$Edition.7z"
-    & (Join-Path $support '7zip/x64/7za.exe') a -t7z $archive (Join-Path $stage '*') -mx=9 -m0=LZMA2 -md=128m -mfb=64 -ms=256m -mmt=4 -bsp0 -bb0
+    $archiveAction = if (Test-Path -LiteralPath $archive) { 'u' } else { 'a' }
+    & (Join-Path $support '7zip/x64/7za.exe') $archiveAction -t7z $archive (Join-Path $stage '*') -mx=9 -m0=LZMA2 -md=128m -mfb=64 -ms=256m -mmt=4 -bsp0 -bb0
     if($LASTEXITCODE) { throw 'Release compression failed.' }
     $stub=Join-Path $releaseRoot "sfx-$Edition.exe"; Copy-Item -LiteralPath (Join-Path $support 'lzma/bin/7zSD.sfx') -Destination $stub -Force
     & (Join-Path $PSScriptRoot 'set-exe-icon.ps1') -Executable $stub -Icon $icon
