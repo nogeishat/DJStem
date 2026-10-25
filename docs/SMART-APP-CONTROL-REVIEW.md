@@ -1,4 +1,6 @@
-# Smart App Control review preparation — DJStem 1.0.1
+# Historical Smart App Control review — DJStem 1.0.1
+
+**Version 1.0.1 has been withdrawn from GitHub. Its release, downloads and tag have been removed. This document records previously prepared evidence only; the draft below is not a current submission.**
 
 Status: prepared on 2026-10-25; the maintainer chose preparation only. Nothing has
 been submitted or approved. No signing-service
@@ -48,7 +50,7 @@ to the staging files by SHA-256. No executables were rebuilt for review.
 Use the official [Microsoft Security Intelligence portal](https://www.microsoft.com/en-us/wdsi/filesubmission),
 select **Software developer**, then **Smart App Control**. Submit only the specific
 affected executables. The portal lists a 50 MB upload limit, so supply the existing
-[release links](https://github.com/nogeishat/DJStem/releases/tag/v1.0.1) and hashes
+recorded filenames and hashes
 for the full installers and ask Microsoft how to provide them for analysis.
 Review of an inner executable must not be treated as approval of its installer.
 
@@ -64,7 +66,7 @@ Request: review Windows 11 Smart App Control blocks of this legitimate music app
 The app plays local audio, downloads user-requested YouTube/SoundCloud tracks and separates stems locally with UVR. CPU and NVIDIA editions bundle Node.js, Python, FFmpeg, yt-dlp and model/runtime dependencies. User music/settings stay in a selected local library. Both setup and native app executables are unsigned. CodeIntegrity event 3077 records the setup being blocked; the player and link drop box have also been blocked. No antivirus detection name was supplied. The 1.0.1 patch fixes a separate launcher log-sharing bug.
 
 Files are unchanged from the public release. Full installers exceed the portal's 50 MB limit; exact inner executable samples and SHA-256 details are provided separately. Please advise how to submit the full installers:
-https://github.com/nogeishat/DJStem/releases/tag/v1.0.1
+[Withdrawn release: public downloads removed.]
 CPU SHA256 b3d647e50140af83752b461370f2542e52dfe2e00c412ec643279bca59deab59
 NVIDIA SHA256 afb855403e74d78ebc5f3744fdd4482cd937e6e90206f8c49d8cd3eaf4d9cd51
 

@@ -19,7 +19,7 @@ includes **Software developer** and **Smart App Control** options. A review can
 be requested for the existing files without enrolling in Artifact Signing or an
 open-source signing service. This is a request for analysis, not a promise to
 allow the app or a replacement publisher certificate. The maintainer has chosen to keep the review materials prepared only. No review has been submitted.
-See the [prepared review report](SMART-APP-CONTROL-REVIEW.md).
+The [historical review report](SMART-APP-CONTROL-REVIEW.md) covers withdrawn version 1.0.1; its downloads are no longer available.
 
 Keep the original release hashes while requesting review. The portal limits
 uploads to 50 MB and asks for specific affected files. The small inner executables
@@ -38,7 +38,7 @@ integration is being pursued for this update.
 Run this read-only check against each assembled release:
 
 ```powershell
-scripts/release/audit-windows-trust.ps1 -StageDirectory releases/1.0.1/staging/cpu -Installer releases/1.0.1/DJStem-1.0.1-Windows-x64-cpu-Setup.exe -InventoryNative -ReportPath releases/1.0.1/cpu-windows-trust.json
+scripts/release/audit-windows-trust.ps1 -StageDirectory releases/1.0.0/staging/cpu -Installer releases/1.0.0/DJStem-1.0.0-Windows-x64-cpu-Setup.exe -InventoryNative -ReportPath releases/1.0.0/cpu-windows-trust.json
 ```
 
 Repeat for NVIDIA. Reports contain relative binary names, SHA-256 hashes and
