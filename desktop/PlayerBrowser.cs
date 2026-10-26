@@ -11,7 +11,8 @@ internal sealed partial class PlayerForm
     private readonly BackdropPanel browser = new BackdropPanel();
     private readonly LibraryGridPanel libraryGrid = new LibraryGridPanel();
     private readonly TextBox librarySearch = new TextBox();
-    private readonly GlassPanel librarySearchBox = new GlassPanel(), libraryFooter = new GlassPanel();
+    private readonly GlassPanel librarySearchBox = new GlassPanel();
+    private readonly Panel libraryFooter = new Panel { BackColor = PlayerTheme.Glass };
     private readonly GlassButton libraryTab = new GlassButton();
     private readonly GlassButton browserPlayerTab = new GlassButton();
     private readonly GlassButton allSongsTab = new GlassButton(), artistsTab = new GlassButton(), libraryPlay = new GlassButton();
@@ -26,9 +27,10 @@ internal sealed partial class PlayerForm
     {
         SetupButton(libraryTab, "Library", sidebar, null); libraryTab.Bounds = new Rectangle(16, 20, 72, 32); libraryTab.AccessibleName = "Open library"; libraryTab.Click += delegate { ShowLibrary(true); };
         browser.Dock = DockStyle.Fill; browser.Visible = false; Controls.Add(browser);
-        browserPlayerTab.Bounds = new Rectangle(24, 13, 118, 32); SetupButton(browserPlayerTab, "Now playing", browser, null); browserPlayerTab.Click += delegate { ShowLibrary(false); };
-        ConfigureLabel(libraryHeading, browser, "Your library", 24, PlayerTheme.Text, true);
+        SetupButton(browserPlayerTab, "Now playing", browser, null); browserPlayerTab.Click += delegate { ShowLibrary(false); };
+        ConfigureLabel(libraryHeading, browser, "", 14, PlayerTheme.Text, true); libraryHeading.AutoEllipsis = true; libraryHeading.TextAlign = ContentAlignment.MiddleLeft;
         ConfigureLabel(libraryCount, browser, "", 10, PlayerTheme.Muted, false);
+        libraryCount.AutoEllipsis = true; libraryCount.TextAlign = ContentAlignment.MiddleLeft;
         SetupButton(allSongsTab, "All songs", browser, null); SetupButton(artistsTab, "Artist folders", browser, null);
         allSongsTab.Click += delegate { playlistsView = false; artistsView = false; artistFolder = null; RenderBrowser(true); };
         artistsTab.Click += delegate { playlistsView = false; artistsView = true; artistFolder = null; RenderBrowser(true); };
@@ -39,9 +41,9 @@ internal sealed partial class PlayerForm
         librarySearch.Bounds = new Rectangle(39, 7, 225, 22); librarySearch.BorderStyle = BorderStyle.None; librarySearch.BackColor = librarySearchBox.Fill; librarySearch.ForeColor = PlayerTheme.Text; librarySearch.AccessibleName = "Search full library"; librarySearchBox.Controls.Add(librarySearch);
         tip.SetToolTip(librarySearch, "Search songs, artist folders, playlists or saved mixes · Ctrl+F"); librarySearch.TextChanged += delegate { RenderBrowser(true); };
         InitializeLibraryFilters();
-        libraryGrid.AutoScroll = true; libraryGrid.WrapContents = true; libraryGrid.BackColor = PlayerTheme.Background; libraryGrid.Padding = Padding.Empty; browser.Controls.Add(libraryGrid);
+        libraryGrid.AutoScroll = true; libraryGrid.WrapContents = true; libraryGrid.BackColor = Color.Transparent; libraryGrid.Padding = Padding.Empty; browser.Controls.Add(libraryGrid);
         libraryGrid.Resize += delegate { LayoutLibraryItems(); };
-        browser.Controls.Add(libraryFooter); libraryFooter.Radius = 14;
+        browser.Controls.Add(libraryFooter);
         libraryNowCover.SizeMode = PictureBoxSizeMode.Zoom; libraryNowCover.BackColor = PlayerTheme.Glass; libraryNowCover.AccessibleName = "Now playing square cover"; libraryFooter.Controls.Add(libraryNowCover);
         ConfigureLabel(libraryNowTitle, libraryFooter, "Choose a song", 11, PlayerTheme.Text, true); libraryNowTitle.AutoEllipsis = true;
         ConfigureLabel(libraryNowArtist, libraryFooter, "Music keeps playing while you browse", 9, PlayerTheme.Muted, false); libraryNowArtist.AutoEllipsis = true;
@@ -65,25 +67,32 @@ internal sealed partial class PlayerForm
     {
         int w = browser.ClientSize.Width, h = browser.ClientSize.Height;
         if (w < 200 || h < 200) return;
-        libraryHeading.Bounds = new Rectangle(24, 69, w - (playlistsView ? myMixesView ? 350 : playlistFolderId == null ? 330 : 490 : 210), 40);
-        manageArtist.Bounds = new Rectangle(w - 166, 75, 142, 32);
-        libraryCount.Bounds = new Rectangle(26, 113, w - 52, 24);
-        allSongsTab.Bounds = new Rectangle(24, 150, 100, 34); artistsTab.Bounds = new Rectangle(132, 150, 126, 34);
-        playlistsTab.Bounds = new Rectangle(266, 150, 100, 34);
-        mixesBackButton.Bounds = new Rectangle(w - 166, 75, 142, 32);
+        browserPlayerTab.Bounds = new Rectangle(24, 20, 118, 34);
+        allSongsTab.Bounds = new Rectangle(150, 20, 100, 34); artistsTab.Bounds = new Rectangle(258, 20, 126, 34);
+        playlistsTab.Bounds = new Rectangle(392, 20, 100, 34);
+        bool heading = playlistsView || artistFolder != null;
+        libraryHeading.Visible = heading;
+        int detailsRight = w - (playlistsView ? myMixesView || playlistFolderId == null ? 316 : 454 : artistFolder != null ? 178 : 24);
+        int headingWidth = Math.Min(Math.Max(100, (detailsRight - 24) / 2), TextRenderer.MeasureText(libraryHeading.Text, libraryHeading.Font).Width + 4);
+        libraryHeading.Bounds = new Rectangle(24, 64, headingWidth, 30);
+        int countLeft = heading ? libraryHeading.Right + 14 : 26;
+        libraryCount.Bounds = new Rectangle(countLeft, 67, Math.Max(80, detailsRight - countLeft), 24);
+        manageArtist.Bounds = new Rectangle(w - 166, 64, 142, 32);
+        mixesBackButton.Bounds = new Rectangle(w - 166, 64, 142, 32);
         LayoutPlaylistButtons(w);
-        librarySearchBox.Bounds = new Rectangle(w - 304, 150, 280, 35);
-        libraryBpmBar.Bounds = new Rectangle(24, 198, w - 48, 42);
-        libraryGridView.Bounds = new Rectangle(libraryBpmBar.Width - 180, 5, 80, 30);
-        libraryListView.Bounds = new Rectangle(libraryBpmBar.Width - 92, 5, 80, 30);
+        librarySearchBox.Bounds = new Rectangle(w - 304, 20, 280, 35);
+        libraryBpmBar.Bounds = new Rectangle(24, 104, w - 48, 44);
+        libraryGridView.Bounds = new Rectangle(libraryBpmBar.Width - 180, 7, 80, 30);
+        libraryListView.Bounds = new Rectangle(libraryBpmBar.Width - 92, 7, 80, 30);
         libraryBpmBar.Visible = !playlistsView;
-        libraryGrid.Bounds = new Rectangle(24, playlistsView ? 198 : 254, w - 48, Math.Max(100, h - (playlistsView ? 308 : 364)));
-        libraryFooter.Bounds = new Rectangle(24, h - 90, w - 48, 70);
-        libraryNowCover.Bounds = new Rectangle(10, 10, 50, 50);
-        libraryNowTitle.Bounds = new Rectangle(76, 12, w - 465, 24); libraryNowArtist.Bounds = new Rectangle(76, 37, w - 465, 22);
-        libraryClock.Bounds = new Rectangle(w - 378, 23, 136, 24);
-        libraryPlay.Bounds = new Rectangle(w - 219, 15, 40, 40);
-        libraryFooter.Controls["OpenPlayer"].Bounds = new Rectangle(w - 166, 18, 108, 34);
+        libraryFooter.Bounds = new Rectangle(0, h - 90, w, 90);
+        int gridTop = playlistsView ? 108 : 160;
+        libraryGrid.Bounds = new Rectangle(24, gridTop, w - 48, Math.Max(100, libraryFooter.Top - gridTop - 20));
+        libraryNowCover.Bounds = new Rectangle(24, 20, 50, 50);
+        libraryNowTitle.Bounds = new Rectangle(90, 20, w - 454, 24); libraryNowArtist.Bounds = new Rectangle(90, 46, w - 454, 22);
+        libraryClock.Bounds = new Rectangle(w - 340, 33, 136, 24);
+        libraryPlay.Bounds = new Rectangle(w - 184, 25, 40, 40);
+        libraryFooter.Controls["OpenPlayer"].Bounds = new Rectangle(w - 132, 28, 108, 34);
         LayoutLibraryItems();
     }
 
@@ -117,7 +126,7 @@ internal sealed partial class PlayerForm
         libraryGridView.Invalidate(); libraryListView.Invalidate();
         foreach (Control child in libraryGrid.Controls.Cast<Control>().ToArray()) child.Dispose();
         allSongsTab.Selected = !artistsView; artistsTab.Selected = artistsView; allSongsTab.Invalidate(); artistsTab.Invalidate();
-        libraryHeading.Text = artistFolder ?? "Your library";
+        libraryHeading.Text = artistFolder ?? "";
         manageArtist.Visible = artistFolder != null;
         if (artistsView && artistFolder == null)
         {
@@ -163,7 +172,7 @@ internal sealed partial class PlayerForm
             if (listView) { card.Height = 72; card.Margin = new Padding(0, 0, 0, 8); }
         }
         LayoutLibraryItems();
-        libraryGrid.AutoScrollPosition = Point.Empty; libraryGrid.ResumeLayout(true); libraryGrid.PerformLayout();
+        LayoutBrowser(); libraryGrid.AutoScrollPosition = Point.Empty; libraryGrid.ResumeLayout(true); libraryGrid.PerformLayout();
     }
 
     private void UpdateBrowserSong()

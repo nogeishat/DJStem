@@ -1,5 +1,31 @@
 # DJStem validation
 
+## 1.0.4 decoder handoff and library layout
+
+Validated on 26 October 2026. All 77 JavaScript tests passed, along with 154
+native player, 26 stem-loading, 163 live tempo/key, 153 library/browser, 57
+saved-mix and 140 playlist checks. Launcher regression checks also passed.
+One initial JavaScript run passed its assertions but failed temporary-directory
+cleanup on Windows; rerunning in the established test folder passed all 77.
+Native audio checks ran with normal Windows audio-device access and isolated
+generated test audio, preferences and libraries.
+
+The new MP3 test reproduced the reported IMFSourceReader E_NOINTERFACE exception
+before the fix. It now covers 48 kHz compressed input at 44.1 kHz output with
+an added stem, background preparation, an STA UI handoff, short/long catch-up,
+BPM/key changes, resets, seeks and subsequent MTA audio-callback reads. Library
+grid, list, saved-mix and playlist renders were inspected for spacing and clipping.
+
+Both assembled editions passed private-runtime isolation, dependency imports,
+model checksums, selected-library service and native audio checks. The CPU build
+contains CPU-only PyTorch and no CUDA provider; the NVIDIA build exposed CUDA
+and detected the test GPU. Both complete self-extracting installers passed archive
+integrity checks. Extracted metadata and first-party executable versions are
+1.0.4, source files match the release source, executable hashes match their
+dependency manifests, and user-content directories are excluded. Signature/hash
+audits were recorded; the builds remain unsigned and Smart App Control
+compatibility remains unverified.
+
 ## 1.0.3 playback, transition scrolling and queue priority
 
 Validated on 25 October 2026. The final source passed all 77 JavaScript tests,

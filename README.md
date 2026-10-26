@@ -6,10 +6,10 @@ A Windows music player with YouTube/SoundCloud link downloads, four-stem separat
 
 **Smart App Control status: the current installers and app executables are unsigned. Windows has blocked them on the test PC; compatibility is not confirmed.** A minimal application change cannot guarantee acceptance. See [Windows trust status and the Microsoft file-review route](docs/CODE-SIGNING.md).
 
-Latest available download: **1.0.3**, with smoother playback/transition scrolling, download queue priority and a white enabled Auto play button. Unsigned downloads from [Releases](https://github.com/nogeishat/DJStem/releases/tag/v1.0.3):
+Latest available download: **1.0.4**, with a fix for BPM/key decoder errors after adding another song and a more compact library layout. Unsigned downloads from [Releases](https://github.com/nogeishat/DJStem/releases/tag/v1.0.4):
 
-- [CPU edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.3/DJStem-1.0.3-Windows-x64-cpu-Setup.exe) — CPU stem separation.
-- [NVIDIA edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.3/DJStem-1.0.3-Windows-x64-nvidia-Setup.exe) — NVIDIA GPU acceleration with a CPU-only option.
+- [CPU edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.4/DJStem-1.0.4-Windows-x64-cpu-Setup.exe) — CPU stem separation.
+- [NVIDIA edition](https://github.com/nogeishat/DJStem/releases/download/v1.0.4/DJStem-1.0.4-Windows-x64-nvidia-Setup.exe) — NVIDIA GPU acceleration with a CPU-only option.
 
 Both installers include Node.js, Python, FFmpeg, yt-dlp, native audio libraries and both separation models. No additional setup downloads are required. Both editions otherwise have the same features and library format.
 

@@ -50,7 +50,7 @@ internal sealed partial class PlayerForm
     {
         SetupButton(autoPlayButton, "Auto play", sidebar, null); autoPlayButton.Bounds = new Rectangle(95, 20, 78, 32);
         SetupButton(settingsButton, "⚙", sidebar, null); settingsButton.Bounds = new Rectangle(180, 20, 30, 32); settingsButton.Font = new Font("Segoe UI Symbol", 14); settingsButton.AccessibleName = "Settings";
-        SetupButton(browserAutoPlayButton, "Auto play", browser, null); browserAutoPlayButton.Bounds = new Rectangle(150, 13, 94, 32);
+        browserAutoPlayButton.Visible = false;
         foreach (GlassButton button in new[] { autoPlayButton, browserAutoPlayButton })
         {
             button.Toggle = true; button.SelectedFill = Color.White; button.Font = new Font("Segoe UI", 8.5f);

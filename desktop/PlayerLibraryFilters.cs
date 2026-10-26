@@ -19,28 +19,26 @@ internal sealed partial class PlayerForm
     private void InitializeLibraryFilters()
     {
         libraryBpmBar.Radius = 9; browser.Controls.Add(libraryBpmBar);
-        AddLabel(libraryBpmBar, "Sort", 12, 8, 36, 24, 9, PlayerTheme.Muted);
         libraryBpmSort.DropDownStyle = ComboBoxStyle.DropDownList; libraryBpmSort.FlatStyle = FlatStyle.Flat;
         libraryBpmSort.BackColor = PlayerTheme.Glass; libraryBpmSort.ForeColor = PlayerTheme.Text; libraryBpmSort.Font = new Font("Segoe UI", 9);
         libraryBpmSort.Items.AddRange(new object[] { "Default order", "BPM ascending", "BPM descending" }); libraryBpmSort.SelectedIndex = 0;
-        libraryBpmSort.Bounds = new Rectangle(54, 6, 172, 30); libraryBpmSort.AccessibleName = "Library song sort order"; libraryBpmBar.Controls.Add(libraryBpmSort);
+        libraryBpmSort.Bounds = new Rectangle(12, 7, 172, 30); libraryBpmSort.AccessibleName = "Library song sort order"; libraryBpmBar.Controls.Add(libraryBpmSort);
         libraryBpmRange.Text = "BPM range"; libraryBpmRange.ForeColor = PlayerTheme.Text; libraryBpmRange.BackColor = PlayerTheme.Glass; libraryBpmRange.Font = new Font("Segoe UI", 9);
-        libraryBpmRange.Bounds = new Rectangle(246, 8, 108, 24); libraryBpmRange.AccessibleName = "Filter library by BPM range"; libraryBpmBar.Controls.Add(libraryBpmRange);
+        libraryBpmRange.Bounds = new Rectangle(204, 9, 108, 26); libraryBpmRange.TextAlign = ContentAlignment.MiddleLeft; libraryBpmRange.CheckAlign = ContentAlignment.MiddleLeft; libraryBpmRange.AccessibleName = "Filter library by BPM range"; libraryBpmBar.Controls.Add(libraryBpmRange);
         NumericUpDown[] endpoints = { libraryBpmFrom, libraryBpmTo };
         for (int index = 0; index < endpoints.Length; index++)
         {
             NumericUpDown endpoint = endpoints[index]; endpoint.Font = new Font("Segoe UI", 9); endpoint.BackColor = PlayerTheme.Glass; endpoint.ForeColor = PlayerTheme.Text;
             endpoint.TextAlign = HorizontalAlignment.Center; endpoint.Enabled = false;
-            GlassPanel frame = new GlassPanel { Radius = 9, Bounds = new Rectangle(index == 0 ? 364 : 482, 6, 84, 30), TabStop = false };
-            endpoint.Bounds = new Rectangle(1, 4, 82, 22); endpoint.AccessibleName = index == 0 ? "Minimum library BPM" : "Maximum library BPM";
-            endpoint.Top = (frame.Height - endpoint.Height) / 2;
+            GlassPanel frame = new GlassPanel { Radius = 9, Bounds = new Rectangle(index == 0 ? 324 : 442, 7, 84, 30), TabStop = false };
+            endpoint.Bounds = new Rectangle(1, 7, 82, 22); endpoint.AccessibleName = index == 0 ? "Minimum library BPM" : "Maximum library BPM";
             frame.Controls.Add(endpoint); libraryBpmBar.Controls.Add(frame);
             endpoint.Enter += delegate { frame.Outline = PlayerTheme.Purple; frame.Invalidate(); };
             endpoint.Leave += delegate { frame.Outline = PlayerTheme.Border; frame.Invalidate(); };
             endpoint.ValueChanged += delegate { ChangeLibraryBpmRange(endpoint); };
         }
-        AddLabel(libraryBpmBar, "to", 452, 8, 26, 24, 9, PlayerTheme.Muted);
-        GlassButton reset = MakeButton("Reset", libraryBpmBar, 584, 5, 70, 30, null); reset.Font = new Font("Segoe UI", 8.5f); reset.AccessibleName = "Reset library BPM sorting and range";
+        AddLabel(libraryBpmBar, "to", 412, 7, 26, 30, 9, PlayerTheme.Muted).TextAlign = ContentAlignment.MiddleCenter;
+        GlassButton reset = MakeButton("Reset", libraryBpmBar, 542, 7, 70, 30, null); reset.Borderless = true; reset.Font = new Font("Segoe UI", 8.5f); reset.AccessibleName = "Reset library BPM sorting and range";
         reset.Click += delegate
         {
             editingLibraryFilters = true;
@@ -50,8 +48,8 @@ internal sealed partial class PlayerForm
         };
         libraryBpmSort.SelectedIndexChanged += delegate { if (!editingLibraryFilters) ApplyLibraryFilters(); };
         libraryBpmRange.CheckedChanged += delegate { if (!editingLibraryFilters) ApplyLibraryFilters(); };
-        SetupButton(libraryGridView, "Grid", libraryBpmBar, "grid"); libraryGridView.Toggle = true; libraryGridView.Selected = true;
-        SetupButton(libraryListView, "List", libraryBpmBar, "list"); libraryListView.Toggle = true;
+        SetupButton(libraryGridView, "Grid", libraryBpmBar, null); libraryGridView.Borderless = true; libraryGridView.Toggle = true; libraryGridView.Selected = true;
+        SetupButton(libraryListView, "List", libraryBpmBar, null); libraryListView.Borderless = true; libraryListView.Toggle = true;
         libraryGridView.AccessibleName = "Show library as a grid"; libraryListView.AccessibleName = "Show library as a list";
         libraryGridView.Click += delegate { ChangeLibraryView(false); };
         libraryListView.Click += delegate { ChangeLibraryView(true); };

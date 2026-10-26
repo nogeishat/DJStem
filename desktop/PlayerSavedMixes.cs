@@ -329,6 +329,6 @@ internal sealed partial class PlayerForm
             tip.SetToolTip(card, saved.Name + "\n" + card.Subtitle + "\nOpen to edit songs, stem sources, volumes and timing.\nRight-click to rename or delete. F2 renames."); libraryGrid.Controls.Add(card);
         }
         if (myMixesView && matching.Count == 0) libraryGrid.Controls.Add(new Label { Text = savedMixes.Count == 0 ? "Save a mix from Now playing. Your editable mixes will appear here." : "No matching mixes.", ForeColor = PlayerTheme.Muted, AutoSize = true, Margin = new Padding(8, 20, 0, 0) });
-        libraryGrid.AutoScrollPosition = Point.Empty; libraryGrid.ResumeLayout(true); libraryGrid.PerformLayout();
+        LayoutBrowser(); libraryGrid.AutoScrollPosition = Point.Empty; libraryGrid.ResumeLayout(true); libraryGrid.PerformLayout();
     }
 }

@@ -126,6 +126,61 @@ internal static class PlayerRealtimeTests
             Check(clock.ElapsedMilliseconds < 2500, "Five concurrent live stereo streams must process faster than playback");
         }
     }
+    private static void CompressedHandoffTests(string root, string audio)
+    {
+        string compressed = Path.Combine(root, "song.mp3");
+        string ffmpeg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe");
+        if (!File.Exists(ffmpeg)) ffmpeg = Environment.GetEnvironmentVariable("STEMKIT_FFMPEG");
+        if (String.IsNullOrWhiteSpace(ffmpeg)) ffmpeg = "ffmpeg.exe";
+        var encode = new ProcessStartInfo(ffmpeg,
+            "-v error -y -i \"" + audio + "\" -t 12 -ar 48000 -c:a libmp3lame -b:a 128k \"" + compressed + "\"")
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
+        using (var process = Process.Start(encode))
+        {
+            if (!process.WaitForExit(10000)) { process.Kill(); throw new Exception("MP3 test fixture encoding timed out."); }
+            Check(process.ExitCode == 0, "MP3 test fixture must encode: " + process.StandardError.ReadToEnd());
+        }
+        string[] files = StemMixer.StemNames.Select(stem => Path.Combine(root, stem + ".wav")).ToArray();
+        // Run alone as well as after MixerTests, which normally creates these.
+        foreach (string file in files) if (!File.Exists(file)) File.Copy(audio, file);
+        var initial = Task.Run(() => new StemMixer(compressed, root, files, Transform(1, 1),
+            Enumerable.Range(0, 4).Select(lane => Transform(1, 1, stem: lane)).ToArray())).GetAwaiter().GetResult();
+        using (var playback = new PlayerPlayback(initial))
+        {
+            Check(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA, "Tuning handoffs must be tested from the UI apartment");
+            initial.Seek(1); Task.Run(() => Read(playback, Rate / 4)).GetAwaiter().GetResult();
+            double previousTempo = 1;
+            double[] tempos = { 1.25, 1.25, .8, 1 };
+            double[] pitches = { Camelot.Pitch(2), Camelot.Pitch(-3), Camelot.Pitch(4), 1 };
+            for (int change = 0; change < tempos.Length; change++)
+            {
+                double tempo = tempos[change], pitch = pitches[change], scale = previousTempo / tempo;
+                StemMixer expected = playback.Current;
+                var next = Task.Run(() => new StemMixer(compressed, root, files,
+                    tempo == 1 && pitch == 1 ? null : Transform(tempo, pitch),
+                    Enumerable.Range(0, 4).Select(lane => Transform(tempo, pitch, stem: lane)).ToArray())).GetAwaiter().GetResult();
+                try
+                {
+                    next.ReplaceStem(1, files[1], 1, new PlaybackTransform(new StemMatchPlan { Tempo = tempo * 1.2, Pitch = Camelot.Pitch(-2) }, Rate, next.TotalFrames, 1));
+                    next.Seek(expected.Seconds * scale);
+                    Task.Run(() => next.WarmTransforms()).GetAwaiter().GetResult();
+                    // Advance playback after warming so catch-up must decode
+                    // more MP3 data, rather than just use the prepared buffer.
+                    Task.Run(() => Read(playback, change == 2 ? Rate * 3 / 4 : Rate / 4)).GetAwaiter().GetResult();
+                    long target = (long)Math.Round(expected.PositionFrames * scale);
+                    Check(playback.ReplaceCurrent(expected, next, scale), "BPM, key and reset handoffs must accept a warmed MP3 decoder from the UI");
+                    Check(next.PositionFrames == target, "Compressed audio must catch up to the exact scaled musical position");
+                    float[] output = Task.Run(() => Read(playback, Rate / 10)).GetAwaiter().GetResult();
+                    Check(Energy(output) > .001 && output.All(value => !Single.IsNaN(value) && !Single.IsInfinity(value)), "The audio callback must continue with finite, audible MP3 and donor samples");
+                    next.Seek(1);
+                    Check(Energy(Task.Run(() => Read(playback, Rate / 4)).GetAwaiter().GetResult()) > .001, "UI seeks must leave compressed playback usable on the audio thread");
+                    playback.ReleaseRetired(); previousTempo = tempo;
+                }
+                finally { if (playback.Current != next) next.Dispose(); }
+            }
+        }
+        Console.WriteLine("MP3 + donor: background warm, STA handoff, short/long catch-up, BPM/key/reset and audio callback passed.");
+    }
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private static object Get(object target, string name) { return target.GetType().GetField(name, Private).GetValue(target); }
     private static void Set(object target, string name, object value) { target.GetType().GetField(name, Private).SetValue(target, value); }
@@ -232,7 +287,8 @@ internal static class PlayerRealtimeTests
         try
         {
             string audio = Path.Combine(root, "song.wav"); Tone(audio, 180);
-            StreamTests(root, audio); MixerTests(root, audio); FormTests(root, audio); ReferenceLoadingTests(root, audio);
+            if (args.Contains("--compressed")) CompressedHandoffTests(root, audio);
+            else { StreamTests(root, audio); MixerTests(root, audio); CompressedHandoffTests(root, audio); FormTests(root, audio); ReferenceLoadingTests(root, audio); }
             Console.WriteLine("Live tempo/key: " + checks + " checks passed."); return 0;
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }

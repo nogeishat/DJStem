@@ -60,6 +60,12 @@ internal sealed class PlayerPlayback : ISampleProvider, IDisposable
     internal StemMixer Current { get { return Volatile.Read(ref current); } }
     internal bool ReplaceCurrent(StemMixer expected, StemMixer replacement, double? positionScale = null)
     {
+        // Catch-up reads the decoder warmed by the MTA workers. Reading that
+        // Media Foundation COM object from WinForms' STA can fail with
+        // E_NOINTERFACE. Keep the whole handoff in the same apartment as warm-up
+        // and audio callbacks, while preserving the synchronous ownership swap.
+        if (positionScale.HasValue && Thread.CurrentThread.GetApartmentState() != ApartmentState.MTA)
+            return Task.Run(() => ReplaceCurrent(expected, replacement, positionScale)).GetAwaiter().GetResult();
         lock (gate)
         {
             if (disposed || current != expected || queued.Count != 0) return false;

@@ -1,6 +1,6 @@
 # Windows trust status
 
-**DJStem 1.0.3 is unsigned, as were 1.0.2, 1.0.0 and the withdrawn 1.0.1. Smart App
+**DJStem 1.0.4 is unsigned, as were 1.0.3, 1.0.2, 1.0.0 and the withdrawn 1.0.1. Smart App
 Control has blocked setup, player and the link drop box on the test PC.
 Compatibility remains unverified.**
 The 1.0.2 launcher and shutdown fixes do not resolve Windows trust. A Code

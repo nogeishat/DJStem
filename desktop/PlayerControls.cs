@@ -536,6 +536,7 @@ internal sealed class GlassButton : Control
     internal int Radius = 10;
     internal bool Plain;
     internal bool TextOnly;
+    internal bool Borderless;
     private bool hover;
     private Color FillColor
     {
@@ -558,6 +559,11 @@ internal sealed class GlassButton : Control
         if (TextOnly)
         {
             TextRenderer.DrawText(e.Graphics, Text, Font, ClientRectangle, ForeColor, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+            return;
+        }
+        if (Borderless)
+        {
+            PaintContent(e.Graphics, !Enabled ? PlayerTheme.Muted : Selected || Focused && ShowFocusCues ? PlayerTheme.Purple : hover ? PlayerTheme.Text : ForeColor);
             return;
         }
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;

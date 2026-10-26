@@ -183,8 +183,8 @@ internal sealed partial class PlayerForm
     {
         createPlaylistButton.Visible = playlistsView && !myMixesView;
         playlistAutoPlayButton.Visible = playlistsView && (myMixesView || playlistFolderId != null);
-        createPlaylistButton.Bounds = new Rectangle(width - 304, 69, 138, 34);
-        playlistAutoPlayButton.Bounds = new Rectangle(width - (myMixesView ? 304 : 442), 69, 128, 34);
+        createPlaylistButton.Bounds = new Rectangle(width - 304, 64, 138, 34);
+        playlistAutoPlayButton.Bounds = new Rectangle(width - (myMixesView ? 304 : 442), 64, 128, 34);
         playlistAutoPlayButton.Selected = autoPlayEnabled && autoPlaylistId == (myMixesView ? AllMixesPlaylistId : playlistFolderId);
         playlistAutoPlayButton.Text = playlistAutoPlayButton.Selected ? "Stop Auto play" : "Auto play"; playlistAutoPlayButton.Invalidate();
     }

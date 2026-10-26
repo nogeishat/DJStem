@@ -138,7 +138,7 @@ internal static class PlayerSavedMixTests
             ((TextBox)Get(form, "librarySearch")).Text = "Second"; Check(grid.Controls.OfType<LibraryCard>().Single().Title == "Second mix", "Playlist search must filter by mix name");
             ((TextBox)Get(form, "librarySearch")).Text = "";
             ((GlassButton)Get(form, "allSongsTab")).PerformClick();
-            Check(!(bool)Get(form, "playlistsView") && grid.Top == 254 && grid.Controls.OfType<LibraryCard>().All(card => card.Tag is SongInfo), "Switching to songs must restore song filters and cards");
+            Check(!(bool)Get(form, "playlistsView") && grid.Top == 160 && grid.Controls.OfType<LibraryCard>().All(card => card.Tag is SongInfo), "Switching to songs must restore song filters and cards");
             string missing = donor.Audio + ".unavailable"; File.Move(donor.Audio, missing);
             ((GlassButton)Get(form, "playlistsTab")).PerformClick();
             open = (Task<bool>)Invoke(form, "OpenSavedMix", saved); Finish(open);
